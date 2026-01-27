@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+venv/
+.venv/
+
+# Project specific (Outputs)
+*.png
+*.pdf
+result.md
+/tests/*.png
+
+# System
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Gemini tmp
+.gemini/
