@@ -72,5 +72,37 @@ def activate_skill(skill_name: str):
     else:
         return f"错误: 本地未找到技能 '{skill_name}'。"
 
+@tool
+def read_file(file_path: str):
+    """读取指定文件的内容。在尝试修改或分析现有代码/配置前，请先读取它。"""
+    if not os.path.exists(file_path):
+        return f"错误: 未找到文件 '{file_path}'。"
+    
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            # 默认读取前 500 行，防止超出上下文限制
+            lines = f.readlines()
+            content = "".join(lines[:500])
+            if len(lines) > 500:
+                content += f"\n\n...(由于文件过长，已截断，共 {len(lines)} 行)..."
+            return content
+    except Exception as e:
+        return f"读取文件出错: {e}"
+
+@tool
+def write_file(file_path: str, content: str):
+    """将文本内容写入指定文件（完全覆盖）。如果文件不存在则创建，如果目录不存在也会自动创建。"""
+    try:
+        # 自动创建父级目录
+        parent_dir = os.path.dirname(file_path)
+        if parent_dir and not os.path.exists(parent_dir):
+            os.makedirs(parent_dir, exist_ok=True)
+            
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return f"成功写入文件: {file_path}"
+    except Exception as e:
+        return f"写入文件出错: {e}"
+
 # 导出工具列表以供绑定
-available_tools = [run_shell, activate_skill]
+available_tools = [run_shell, activate_skill, read_file, write_file]

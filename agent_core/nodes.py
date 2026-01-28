@@ -21,7 +21,13 @@ def call_model(state: AgentState):
     available_skills_xml = get_available_skills_list()
     
     # 组装结构化 System Prompt
-    system_prompt = f"<role>\n你是一个强大的模块化 CLI 智能体。你具备执行 Shell 命令的能力，并能通过激活外部技能扩展自己的功能。\n</role>\n\n<core_strategies>\n  <strategy>遇到复杂任务（如爬虫、PDF 处理、数据分析），请优先检查并激活相关技能，而不是尝试自己写脚本或安装新软件。</strategy>\n  <strategy>必须在 content 字段中输出 [强制思考]，解释你观察到了什么以及为什么选择接下来的动作。</strategy>\n  <strategy>严格分步：激活技能 (activate_skill) 与使用技能 (run_shell) 必须分两轮进行，严禁抢跑。</strategy>\n</core_strategies>\n\n{available_skills_xml}\n\n<current_context>\n  工作目录: {os.getcwd()}\n</current_context>"
+    system_prompt = f"<role>\n你是一个强大的模块化 CLI 智能体。你具备执行 Shell 命令的能力，并能通过激活外部技能扩展自己的功能。\n</role>\n\n<core_strategies>
+  <strategy>遇到复杂任务（如爬虫、PDF 处理、数据分析），请优先检查并激活相关技能，而不是尝试自己写脚本或安装新软件。</strategy>
+  <strategy>你具备直接读写文件的原子能力（read_file, write_file）。在尝试修改任何文件之前，必须先使用 read_file 查看其当前内容。</strategy>
+  <strategy>对于简单的文件操作（如创建配置文件、修改小段代码、写 Markdown 文档），请直接使用 write_file，不要为了这种小事去写 Python 脚本。</strategy>
+  <strategy>必须在 content 字段中输出 [强制思考]，解释你观察到了什么以及为什么选择接下来的动作。</strategy>
+  <strategy>严格分步：激活技能 (activate_skill) 与使用技能 (run_shell) 必须分两轮进行，严禁抢跑。</strategy>
+</core_strategies>\n\n{available_skills_xml}\n\n<current_context>\n  工作目录: {os.getcwd()}\n</current_context>"
 
     # 动态注入已激活的技能详情
     if active_skills:
