@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import sys
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from prompt_toolkit import PromptSession
 from prompt_toolkit.styles import Style
 from agent_core import build_graph
@@ -61,6 +61,13 @@ def main():
                     # 2. 如果没有工具调用，content 视为最终回答
                     elif last_msg.content:
                         print(f"Agent> {last_msg.content.strip()}")
+                
+                elif isinstance(last_msg, ToolMessage):
+                    # 展示工具执行结果预览，增加“轮次感”
+                    res_text = last_msg.content.strip().replace("\n", " ")
+                    if len(res_text) > 60:
+                        res_text = res_text[:60] + "..."
+                    print(f"   ✅ [结果] {res_text}")
                 
             chat_history = event["messages"]
             print("")
