@@ -2,7 +2,8 @@ import os
 from langchain_core.messages import SystemMessage, ToolMessage, AIMessage
 from langchain_openai import ChatOpenAI
 from .state import AgentState
-from .tools import available_tools, activate_skill, get_available_skills_list
+from .tools import available_tools, activate_skill
+from .utils import get_available_skills_list
 
 # 在核心逻辑模块中初始化 LLM
 # 注意: 确保环境变量中设置了 OPENAI_API_KEY
