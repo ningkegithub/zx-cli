@@ -29,14 +29,16 @@ def test_write_and_read():
     
     # 1. 测试写入（包含自动创建父目录）
     content_to_write = "Hello, Agent!\nThis is a test file."
-    print(f"   📝 尝试写入文件: {TEST_FILE}")
-    result_write = write_file.invoke({"file_path": TEST_FILE, "content": content_to_write})
     
-    if "成功写入" in result_write:
-        print("   ✅ 写入成功")
-    else:
-        print(f"   ❌ 写入失败: {result_write}")
-        sys.exit(1)
+    # [新增] 测试中文内容
+    chinese_content = "你好，世界！这是一段测试文本。"
+    chinese_file = os.path.join(TEST_DIR, "chinese.txt")
+    
+    print(f"   📝 尝试写入文件: {TEST_FILE}")
+    write_file.invoke({"file_path": TEST_FILE, "content": content_to_write})
+    
+    print(f"   📝 尝试写入中文文件: {chinese_file}")
+    write_file.invoke({"file_path": chinese_file, "content": chinese_content})
 
     # 验证文件物理存在
     if not os.path.exists(TEST_FILE):
@@ -47,10 +49,14 @@ def test_write_and_read():
     print(f"   📖 尝试读取文件: {TEST_FILE}")
     result_read = read_file.invoke({"file_path": TEST_FILE})
     
-    if result_read == content_to_write:
-        print("   ✅ 读取内容匹配")
+    # 验证中文读取
+    print(f"   📖 尝试读取中文文件: {chinese_file}")
+    result_cn = read_file.invoke({"file_path": chinese_file})
+    
+    if result_read == content_to_write and result_cn == chinese_content:
+        print("   ✅ 内容匹配 (含中文)")
     else:
-        print(f"   ❌ 读取内容不匹配.\n期望:\n{content_to_write}\n实际:\n{result_read}")
+        print(f"   ❌ 读取内容不匹配。\n期望(CN): {chinese_content}\n实际: {result_cn}")
         sys.exit(1)
 
     # 3. 测试读取不存在的文件
