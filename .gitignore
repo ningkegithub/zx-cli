@@ -23,6 +23,3 @@ github_docs/
 
 # Gemini tmp
 .gemini/
-
-# Personal Context
-GEMINI.md
