@@ -3,3 +3,4 @@ langgraph
 langchain-openai
 requests
 beautifulsoup4prompt_toolkit
+python-pptx

@@ -4,33 +4,24 @@
 [![LangGraph](https://img.shields.io/badge/Framework-LangGraph-purple.svg)](https://github.com/langchain-ai/langgraph)
 [![License-MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-这是一个基于 **LangGraph** 和 **OpenAI** 模型（默认使用 **GPT-4o-mini**，支持切换）构建的高性能、模块化智能体命令行工具。它专为中文开发者环境深度定制，不仅是一个简单的 CLI 包装，更是一套具备自愈能力和透明思维的 Agent 运行框架。
+这是一个基于 **LangGraph** 构建的高性能、模块化智能体命令行工具。它采用“模型中立”架构，深度适配 **DeepSeek (通过火山引擎)**、**OpenAI** 等主流大模型，专为中文开发者环境设计。
 
 ## ✨ 核心亮点
 
 ### 🧠 思考透明化 (Inner Monologue)
 拒绝黑盒！Agent 在执行任何动作前，必须先在终端输出其“内心独白”。通过展示思维逻辑，让开发者能够清晰地观测到 Agent 的决策路径。
 
-### 🔧 原子文件操作 (Atomic Operations)
-从“脚本调用者”进化为“工匠”。内置安全的 `read_file` 和 `write_file` 工具，支持相对路径解析、自动目录创建和防爆截断。Agent 现在可以直接阅读代码、修改配置或编写文档，无需编写临时 Python 脚本，大幅提升任务成功率。
-
-### 🛡️ 多重安全守卫 (Safety Guardrails)
-*   **环境自修复 (Env Fix)**：自动感知并重定向 Python 子进程至 `venv`，解决依赖缺失问题。
-*   **硬逻辑拦截 (Hard Interceptor)**：在代码层面物理拦截 Agent 的“抢跑”行为（如试图在读取文件前就写入，或在激活技能前就使用）。强制执行“先读后写”、“先加载再执行”的严谨时序。
+### 🔧 灵活的模型切换 (Provider Agnostic)
+内置动态模型加载机制。只需通过环境变量，即可一键从 OpenAI 切换至 DeepSeek (Ark) 或其他兼容 OpenAI API 的提供商，无需修改任何核心代码。
 
 ### 🔌 动态技能插拔
-Agent 采用“零预置”策略。当面临复杂任务时，Agent 会通过 `activate_skill` 动态加载本地技能描述文件。
-
-### 🇨🇳 中文开发者友好
-*   全中文 CLI 交互界面。
-*   全中文代码注释与开发者文档。
-*   深度适配中文语境下的任务处理。
+Agent 采用“零预置”策略。当面临复杂任务时，Agent 会通过 `activate_skill` 动态加载本地技能描述文件。系统强制执行“先加载、再执行”的严谨时序。
 
 ---
 
 ## 🏗️ 系统架构
 
-系统基于 LangGraph 的有向无环图 (DAG) 架构，确保了任务流转的清晰可控：
+系统基于 LangGraph 的有向无环图 (DAG) 架构，内置多重安全与自愈机制：
 
 ```mermaid
 ---
@@ -65,7 +56,7 @@ graph TD;
     classDef last fill:#eceff1,stroke:#455a64;
 ```
 
-*   **决策核心**：负责规划任务、生成思考内容。内置**安全守卫**，物理拦截“并行读写”或“抢跑”行为。
+*   **决策核心**：负责规划任务、生成思考内容。内置**安全守卫**，物理拦截违规操作。
 *   **工具执行**：执行 Shell 命令、文件读写或激活技能。内置**环境自修复**，自动重定向 Python 环境。
 *   **技能池更新**：拦截技能激活事件，实时扩展 Agent 的能力边界。
 
@@ -77,10 +68,6 @@ graph TD;
 推荐使用 Python 3.10 及以上版本。
 
 ```bash
-# 克隆项目
-git clone https://github.com/your-repo/agent-cli.git
-cd agent-cli
-
 # 创建并激活虚拟环境
 python3 -m venv venv
 source venv/bin/activate
@@ -89,12 +76,19 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. 配置密钥
-设置你的 OpenAI API Key。
+### 2. 配置模型 (以 DeepSeek/火山引擎为例)
+通过环境变量配置模型。我们推荐将这些配置添加到您的 `~/.zshrc` 或 `~/.bashrc` 中。
 
 ```bash
-export OPENAI_API_KEY="sk-你的密钥"
+# 火山引擎方舟接入点 URL
+export LLM_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+# 您部署的 Endpoint ID (如 ep-2025...)
+export LLM_MODEL_NAME="your-endpoint-id"
+# 您的 API Key
+export LLM_API_KEY="your-api-key"
 ```
+
+*注：若未配置上述变量，系统默认使用 `OPENAI_API_KEY` 并调用 `gpt-4o-mini`。*
 
 ### 3. 运行体验
 ```bash

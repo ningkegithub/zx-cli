@@ -5,33 +5,42 @@ from .state import AgentState
 from .tools import available_tools, activate_skill
 from .utils import get_available_skills_list
 
-# 在核心逻辑模块中初始化 LLM
-# 注意: 确保环境变量中设置了 OPENAI_API_KEY
-llm = ChatOpenAI(model="gpt-4o-mini") 
+# 初始化 LLM (支持通过环境变量切换模型提供商，如 DeepSeek/火山引擎)
+model_name = os.environ.get("LLM_MODEL_NAME", "gpt-4o-mini")
+base_url = os.environ.get("LLM_BASE_URL") # None 意味着使用默认 OpenAI URL
+api_key = os.environ.get("LLM_API_KEY") or os.environ.get("OPENAI_API_KEY")
+
+if not api_key:
+    # 简单的 fallback 防止启动报错，实际运行时如果没有 key 会在调用时失败
+    print("⚠️ Warning: No API Key found (LLM_API_KEY or OPENAI_API_KEY).")
+
+llm = ChatOpenAI(
+    model=model_name,
+    temperature=0,
+    base_url=base_url,
+    api_key=api_key
+) 
 llm_with_tools = llm.bind_tools(available_tools)
 
 def call_model(state: AgentState):
     """
-    核心思考节点：组装结构化的 XML Prompt 并调用大模型。
+    核心思考节点：构建结构化 Prompt 并调用 LLM。
     """
     messages = state["messages"]
     active_skills = state.get("active_skills", {})
-    
-    # 获取本地可用技能清单 (XML 格式)
     available_skills_xml = get_available_skills_list()
     
-    # 组装结构化 System Prompt
+    # 基础 System Prompt
     system_prompt = f"""<role>
 你是一个强大的模块化 CLI 智能体。你具备执行 Shell 命令的能力，并能通过激活外部技能扩展自己的功能。
 </role>
 
 <core_strategies>
-  <strategy>遇到复杂任务（如爬虫、PDF 处理、数据分析），请优先检查并激活相关技能，而不是尝试自己写脚本或安装新软件。</strategy>
-  <strategy>你具备直接读写文件的原子能力（read_file, write_file）。在尝试修改任何文件之前，必须先使用 read_file 查看其当前内容。</strategy>
-  <strategy>对于简单的文件操作（如创建配置文件、修改小段代码、写 Markdown 文档），请直接使用 write_file，不要为了这种小事去写 Python 脚本。</strategy>
-  <strategy>必须在 content 字段中输出 [强制思考]，解释你观察到了什么以及为什么选择接下来的动作。</strategy>
-  <strategy>严格分步：激活技能 (activate_skill) 后，必须等待下一轮对话确认技能协议已加载，才能执行该技能定义的后续操作（无论是运行脚本还是使用原子工具），严禁在同一轮次中抢跑。</strategy>
-  <strategy>依赖阻断：当你使用 read_file 读取文件时，严禁在同一轮次中根据该文件内容执行写操作。你必须等待系统返回文件内容后，在下一轮对话中再进行后续操作。</strategy>
+  <strategy>遇到复杂任务，请优先检查并激活相关技能。</strategy>
+  <strategy>【强制思考】在调用工具前，必须在 content 中输出以“🧠 [思考]”开头的内心独白，解释你的判断。</strategy>
+  <strategy>【原子工具】修改文件前必须先使用 read_file。严禁在正文中虚构文件内容或执行结果。</strategy>
+  <strategy>【严格分步 - 技能】激活技能 (activate_skill) 后，必须等待下一轮对话确认协议加载，严禁在同一轮次中调用该技能下的脚本或工具。</strategy>
+  <strategy>【严格分步 - 读写】读取文件 (read_file) 后，必须等待内容返回，严禁在同一轮次中执行 write_file。</strategy>
 </core_strategies>
 
 {available_skills_xml}
@@ -40,52 +49,46 @@ def call_model(state: AgentState):
   工作目录: {os.getcwd()}
 </current_context>"""
 
-    # 动态注入已激活的技能详情
+    # 动态注入已激活技能 (使用更稳健的拼接方式避开 f-string 换行限制)
     if active_skills:
         system_prompt += "\n\n<activated_skills>"
-        for skill_name, content in active_skills.items():
-            system_prompt += f'\n  <skill name="{skill_name}">\n    <instructions>\n{content}\n    </instructions>\n  </skill>'
+        for skill_name, skill_content in active_skills.items():
+            system_prompt += "\n  <skill name=\"" + skill_name + "\">\n    <instructions>\n"
+            system_prompt += skill_content
+            system_prompt += "\n    </instructions>\n  </skill>"
         system_prompt += "\n</activated_skills>"
     
-    # 过滤掉旧的系统消息，确保上下文清晰
     clean_messages = [m for m in messages if not isinstance(m, SystemMessage)]
     messages_payload = [SystemMessage(content=system_prompt)] + clean_messages
     
     response = llm_with_tools.invoke(messages_payload)
 
-    # [安全守卫] 硬性拦截：防止 read_file 和 write_file 并行执行
-    # 如果模型试图通过“幻觉”在未读取前就写入，强制移除写入操作
+    # [硬性拦截逻辑]
     if response.tool_calls:
         tool_names = [tc["name"] for tc in response.tool_calls]
-        if "read_file" in tool_names and "write_file" in tool_names:
+        
+        # 拦截 1: 激活与执行并行
+        if "activate_skill" in tool_names and len(tool_names) > 1:
+            print("\n🛡️ [安全守卫] 检测到激活技能与其他动作并行，强制拦截后续动作。")
+            response.tool_calls = [tc for tc in response.tool_calls if tc["name"] == "activate_skill"]
+            response.content = "🧠 [思考] 我需要先激活技能，待下一轮获知技能协议后再执行具体动作。"
+
+        # 拦截 2: 读写并行
+        elif "read_file" in tool_names and "write_file" in tool_names:
             print("\n🛡️ [安全守卫] 检测到并行读写，强制拦截写入操作，确保先读后写。")
-            # 只保留非 write_file 的工具调用
-            response.tool_calls = [tc for tc in response.tool_calls if tc["name"] != "write_file"]
+            response.tool_calls = [tc for tc in response.tool_calls if tc["name"] == "read_file"]
+            response.content = "🧠 [思考] 我需要先读取文件内容，确认无误后再进行写入。"
 
     return {"messages": [response]}
 
 def process_tool_outputs(state: AgentState):
-    """
-    后处理节点：检查工具执行结果，处理状态更新（如技能激活）。
-    它在 ToolNode 之后运行。
-    """
+    """后处理节点：处理技能激活的状态更新。"""
     messages = state["messages"]
-    last_message = messages[-1]
-    
-    # 确保我们处理的是 ToolMessage 列表（因为 ToolNode 可能一次返回多个）
-    # LangGraph 的 ToolNode 会将结果追加到 messages，所以我们要倒序找最近的一批 ToolMessage
-    
-    # 获取当前已激活的技能字典
     current_skills = dict(state.get("active_skills", {}))
     skills_updated = False
     
-    # 重新设计策略：
-    # 核心逻辑：通过 tool_call_id 将 ToolMessage 与 AIMessage 中的工具调用关联起来。
-    
-    # 1. 找到最近的一个 AIMessage (即发起工具调用的源头)
     last_ai_msg = None
     for msg in reversed(messages):
-        if isinstance(msg, SystemMessage): continue # skip
         if isinstance(msg, AIMessage):
             last_ai_msg = msg
             break
@@ -93,30 +96,16 @@ def process_tool_outputs(state: AgentState):
     if not last_ai_msg or not last_ai_msg.tool_calls:
         return {}
 
-    # 2. 建立 ID 到 skill_name 的映射表
-    # 这一步是为了确保我们只处理 activate_skill 的结果，并且能拿到对应的技能名
-    id_to_skill = {}
-    for tc in last_ai_msg.tool_calls:
-        if tc["name"] == "activate_skill":
-            id_to_skill[tc["id"]] = tc["args"]["skill_name"]
-
+    id_to_skill = {tc["id"]: tc["args"]["skill_name"] for tc in last_ai_msg.tool_calls if tc["name"] == "activate_skill"}
     if not id_to_skill:
         return {}
 
-    # 3. 扫描对应的 ToolMessage 并提取协议内容
     for msg in reversed(messages):
-        if not isinstance(msg, ToolMessage):
-            break
-        
-        # 只有当消息ID匹配且包含特定的协议注入标识时，才更新状态
+        if not isinstance(msg, ToolMessage): break
         if msg.tool_call_id in id_to_skill:
             skill_name = id_to_skill[msg.tool_call_id]
             if "SYSTEM_INJECTION" in msg.content:
-                content = msg.content.replace("SYSTEM_INJECTION: ", "")
-                current_skills[skill_name] = content
+                current_skills[skill_name] = msg.content.replace("SYSTEM_INJECTION: ", "")
                 skills_updated = True
     
-    if skills_updated:
-        return {"active_skills": current_skills}
-    
-    return {}
+    return {"active_skills": current_skills} if skills_updated else {}
