@@ -28,7 +28,9 @@
   - **[2026-01-29] 架构中立化与办公自动化实战**：
     - **多模型提供商支持**：通过环境变量 (`LLM_MODEL_NAME`, `LLM_BASE_URL`, `LLM_API_KEY`) 彻底解耦模型提供商，成功实现向 DeepSeek (火山引擎 Ark) 的平滑切换。
     - **PPT 自动化技能落地**：新建 `ppt_master` 技能，实现 Markdown 剧本 -> 企业级 PPTX 的转换。支持自动清空模板、智能版式匹配以及“图示建议”视觉占位。
-    - **UI 交互增强**：优化 `main.py` 循环，实时回显 `ToolMessage` 结果预览，消除 Agent 长任务执行时的黑盒感。
+    - **UI 交互增强**：
+        - 优化 `main.py` 循环，实时回显 `ToolMessage` 结果预览。
+        - 引入消息去重机制 (`seen_message_ids`) 和正则清洗，彻底解决 DeepSeek 模型思考内容重复打印的问题，提升交互清爽度。
   - **[2026-01-29] 迈向“工匠”：原子能力与强安全拦截**：
     - **原子能力 (Atomic Tools)**：新增 `read_file` 和 `write_file`，使 Agent 具备直接读写文件的能力，不再完全依赖 Shell 脚本。
     - **代码层拦截 (Hard Guardrail)**：在 `nodes.py` 中部署物理拦截逻辑，强制阻止“并行读写”和“激活即执行”的抢跑行为，确保 Agent 逻辑严密。
