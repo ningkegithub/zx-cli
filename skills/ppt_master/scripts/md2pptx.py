@@ -125,7 +125,7 @@ def fill_slide(slide, slide_data):
 
 def create_ppt(slides, output_path, template_path):
     if not os.path.exists(template_path):
-        print(f"Template not found: {template_path}, using blank.")
+        print(f"⚠️ 未找到模板: {template_path}，已回退为空白模板。")
         prs = Presentation()
     else:
         prs = Presentation(template_path)

@@ -7,6 +7,45 @@
 
 ## 📅 2026-01-30
 
+### 👨‍💻 交班人: Codex
+
+#### ✅ 已完成工作 (Done)
+1. **依赖与健壮性修复**：
+   - 修正 `requirements.txt` 拼写错误（拆分 `beautifulsoup4` / `prompt_toolkit`）。
+   - 修复消息去重逻辑：`msg.id` 为空时避免全量误去重。
+   - `activate_skill` 读取 `SKILL.md` 强制 `utf-8`。
+   - `ppt_master` 模板缺失时给出中文回退提示。
+2. **技能发现与激活规范化**：
+   - `<available_skills>` 输出加入 `id` 字段；系统提示要求使用 `id` 精准匹配。
+   - 移除别名机制，改为 **建议提示**（difflib 近似匹配）。
+   - `activate_skill` 失败时返回可用技能清单与建议。
+3. **CLI 退出与稳定性**：
+   - `Ctrl+C` 退出逻辑增强：任务中取消、双击退出。
+   - 退出时主动关闭 LLM HTTP 客户端，减少解释器 shutdown 卡顿。
+4. **UI 渲染策略收敛**：
+   - 放弃“思考/回答分区”，回归单一流式 Markdown 输出。
+   - 工具调用前快照固化 + 前缀裁剪，减少重复输出。
+5. **测试补充与调整**：
+   - 新增：`test_activate_skill_encoding.py`、`test_skill_suggestions.py`、`test_model_output_constraints.py`。
+   - 删除已不适用：`test_skill_alias.py`、`test_thought_split.py`。
+   - `test_basic_flow.py` / `test_e2e_v2.py` 增加网络可达预检，避免沙箱误失败。
+
+#### 🧪 已运行测试 (Tests)
+- `./venv/bin/python3 tests/test_model_output_constraints.py`
+- `./venv/bin/python3 tests/test_thought_split.py`（后续已删除）
+- `./venv/bin/python3 tests/test_skill_suggestions.py`
+- `./venv/bin/python3 tests/test_activate_skill_encoding.py`
+- `./venv/bin/python3 tests/test_skill_discovery.py`
+- `./venv/bin/python3 tests/test_atomic_tools.py` / `tests/test_guardrail.py` / `tests/test_state_updater.py` / `tests/test_cli_components.py`
+> 注：`test_basic_flow.py` / `test_e2e_v2.py` 在沙箱网络下因 DNS/出网限制失败，用户已在本机终端跑通。
+
+#### ⚠️ 注意事项 (Notes)
+- 当前 UI 已恢复为“单一输出流”，不再区分思考/回答；模型仍可能输出“🧠 [思考]”文本（原样展示）。
+- `available_skills` 里以 `id` 为准，不再支持别名；提示会给出相近技能建议。
+- 若后续恢复“分区视图”，需重新引入拆分逻辑与对应测试。
+
+## 📅 2026-01-30
+
 ### 👨‍💻 交班人: Gemini 3 Pro (协助构建者)
 
 #### ✅ 已完成工作 (Done)

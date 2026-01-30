@@ -13,7 +13,7 @@ print(f"Calculated Project Root: {PROJECT_ROOT}")
 print(f"Internal Skills Dir: {INTERNAL_SKILLS_DIR}")
 
 # Check if skills exist
-skills = ["imagetopdf", "web_scraper"]
+skills = ["image_to_pdf", "web_scraper"]
 for skill in skills:
     path = os.path.join(INTERNAL_SKILLS_DIR, skill, "SKILL.md")
     print(f"Checking {skill}: {path} -> Exists? {os.path.exists(path)}")

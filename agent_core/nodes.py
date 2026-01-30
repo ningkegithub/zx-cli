@@ -1,4 +1,7 @@
 import os
+import asyncio
+import inspect
+import re
 from langchain_core.messages import SystemMessage, ToolMessage, AIMessage
 from langchain_openai import ChatOpenAI
 from .state import AgentState
@@ -22,6 +25,48 @@ llm = ChatOpenAI(
 ) 
 llm_with_tools = llm.bind_tools(available_tools)
 
+def _close_client(obj, attr):
+    """尽量关闭底层客户端（同步/异步都兼容）。"""
+    client = getattr(obj, attr, None)
+    if not client:
+        return
+    close_fn = getattr(client, "close", None)
+    if not callable(close_fn):
+        return
+    try:
+        if inspect.iscoroutinefunction(close_fn):
+            try:
+                asyncio.run(close_fn())
+            except RuntimeError:
+                # 如果已有运行中的事件循环，尽量调度一次
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    loop.create_task(close_fn())
+                else:
+                    loop.run_until_complete(close_fn())
+        else:
+            close_fn()
+    except Exception:
+        # 关闭失败不影响主流程
+        return
+
+def shutdown_llm_clients():
+    """退出前关闭 LLM HTTP 客户端，避免线程池阻塞退出。"""
+    for obj in (llm, llm_with_tools):
+        _close_client(obj, "root_client")
+        _close_client(obj, "root_async_client")
+        _close_client(obj, "http_client")
+        _close_client(obj, "http_async_client")
+
+def _ensure_tool_call_thought_prefix(content: str) -> str:
+    """工具调用时确保有思考前缀，但不强制剥离回答内容。"""
+    text = (content or "").strip()
+    if not text or text == "🧠" or text == "🧠 [思考]":
+        return "🧠 [思考] 我需要调用工具获取必要信息。"
+    if not text.startswith("🧠 [思考]"):
+        text = "🧠 [思考] " + text
+    return text
+
 def call_model(state: AgentState):
     """
     核心思考节点：构建结构化 Prompt 并调用 LLM。
@@ -38,6 +83,7 @@ def call_model(state: AgentState):
 <core_strategies>
   <strategy>遇到复杂任务，请优先检查并激活相关技能。</strategy>
   <strategy>【强制思考】在调用工具前，必须在 content 中输出以“🧠 [思考]”开头的内心独白，解释你的判断。</strategy>
+  <strategy>【技能规范】激活技能时必须使用 &lt;available_skills&gt; 中 skill 的 id 字段，名称需精准匹配。</strategy>
   <strategy>【文件规范】所有生成的新文件（如文档、代码、PPT）默认必须保存到 output/ 目录下，除非用户明确指定了其他路径。</strategy>
   <strategy>【原子工具】修改文件前必须先使用 read_file。严禁在正文中虚构文件内容或执行结果。</strategy>
   <strategy>【严格分步 - 技能】激活技能 (activate_skill) 后，必须等待下一轮对话确认协议加载，严禁在同一轮次中调用该技能下的脚本或工具。</strategy>
@@ -66,6 +112,9 @@ def call_model(state: AgentState):
 
     # [硬性拦截逻辑]
     if response.tool_calls:
+        # 工具调用场景下，确保有思考前缀，但允许输出回答内容
+        response.content = _ensure_tool_call_thought_prefix(response.content)
+
         tool_names = [tc["name"] for tc in response.tool_calls]
         
         # 拦截 1: 激活与执行并行

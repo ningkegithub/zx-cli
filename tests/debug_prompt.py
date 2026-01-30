@@ -2,7 +2,7 @@ import os
 
 def run():
     skills = {
-        "imagetopdf": "这是图片处理协议...",
+        "image_to_pdf": "这是图片处理协议...",
         "coder": "这是编程专家协议..."
     }
     prompt = "你是一个智能助手。\n当前目录: " + os.getcwd()
@@ -15,4 +15,3 @@ def run():
 
 if __name__ == "__main__":
     run()
-

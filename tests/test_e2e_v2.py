@@ -1,6 +1,8 @@
 import sys
 import os
 import time
+import socket
+from urllib.parse import urlparse
 from rich.console import Console
 from rich.panel import Panel
 from rich.live import Live
@@ -17,6 +19,24 @@ from agent_core import build_graph
 from agent_core.tools import write_file
 
 console = Console()
+
+def can_reach_llm():
+    """快速检查 LLM 端点是否可达（解析 + TCP）。不可达则跳过在线测试。"""
+    base_url = os.environ.get("LLM_BASE_URL") or "https://api.openai.com/v1"
+    host = urlparse(base_url).hostname or base_url
+
+    try:
+        socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
+    except Exception as e:
+        console.print(f"[bold yellow]⚠️ 无法解析 LLM 域名:[/bold yellow] {host} ({e})，跳过在线测试。")
+        return False
+
+    try:
+        with socket.create_connection((host, 443), timeout=3):
+            return True
+    except Exception as e:
+        console.print(f"[bold yellow]⚠️ 无法连接 LLM 端点:[/bold yellow] {host}:443 ({e})，跳过在线测试。")
+        return False
 
 def setup_test_data():
     """准备测试用的 Markdown 文件"""
@@ -49,6 +69,10 @@ def run_e2e_test():
     
     if not os.environ.get("OPENAI_API_KEY") and not os.environ.get("LLM_API_KEY"):
         console.print("[bold red]❌ 错误: 未设置 API Key[/bold red]")
+        return
+    
+    # 网络不可达时跳过
+    if not can_reach_llm():
         return
 
     # 1. 准备数据

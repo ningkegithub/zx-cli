@@ -3,7 +3,7 @@ from rich.panel import Panel
 from rich.text import Text
 from rich.markdown import Markdown
 from rich.markup import escape
-from rich.console import Console
+from rich.console import Console, Group
 
 console = Console()
 
@@ -68,3 +68,35 @@ def render_error(console, e):
     err_text = Text("\n❌ Error: ", style="bold red")
     err_text.append(str(e))
     console.print(err_text)
+
+def build_thought_answer_view(thought_text: str, answer_text: str, spinner_text: Text | None = None):
+    """构建思考/回答双区域视图，便于清晰区分。无内容则不显示对应框。"""
+    panels = []
+
+    if spinner_text or thought_text:
+        thought_items = []
+        if spinner_text:
+            thought_items.append(spinner_text)
+        if thought_text:
+            thought_items.append(Markdown(thought_text))
+        thought_panel = Panel(
+            Group(*thought_items),
+            title="🧠 思考",
+            border_style="cyan",
+            expand=False
+        )
+        panels.append(thought_panel)
+
+    if answer_text:
+        answer_panel = Panel(
+            Markdown(answer_text),
+            title="💬 回答",
+            border_style="green",
+            expand=False
+        )
+        panels.append(answer_panel)
+
+    if not panels:
+        return Text("")
+
+    return Group(*panels)

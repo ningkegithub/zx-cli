@@ -2,7 +2,7 @@ import os
 import subprocess
 import sys
 from langchain_core.tools import tool
-from .utils import INTERNAL_SKILLS_DIR, USER_SKILLS_DIR
+from .utils import INTERNAL_SKILLS_DIR, USER_SKILLS_DIR, get_available_skills_hint, get_skill_suggestions
 
 @tool
 def run_shell(command: str):
@@ -38,13 +38,15 @@ def run_shell(command: str):
 
 @tool
 def activate_skill(skill_name: str):
-    """激活特殊技能。例如：'imagetopdf', 'web_scraper'。"""
+    """激活特殊技能。例如：'image_to_pdf', 'web_scraper'。"""
     # print(f"\n⚡️ [工具] 激活技能: {skill_name}...") # 移除直接打印
     
+    normalized_name = skill_name.strip()
+
     # 搜索优先级：项目内置技能 > 用户自定义技能
     search_paths = [
-        os.path.join(INTERNAL_SKILLS_DIR, skill_name, "SKILL.md"),
-        os.path.join(USER_SKILLS_DIR, skill_name, "SKILL.md")
+        os.path.join(INTERNAL_SKILLS_DIR, normalized_name, "SKILL.md"),
+        os.path.join(USER_SKILLS_DIR, normalized_name, "SKILL.md")
     ]
     
     target_file = None
@@ -58,7 +60,7 @@ def activate_skill(skill_name: str):
             
     if target_file and skill_base_dir:
         try:
-            with open(target_file, "r") as f:
+            with open(target_file, "r", encoding="utf-8") as f:
                 content = f.read()
             
             # [关键] 动态变量注入
@@ -70,6 +72,15 @@ def activate_skill(skill_name: str):
         except Exception as e:
             return f"读取技能文件错误: {e}"
     else:
+        suggestions = get_skill_suggestions(normalized_name)
+        hint = get_available_skills_hint()
+        if suggestions:
+            sug_text = ", ".join(suggestions)
+            if hint:
+                return f"错误: 本地未找到技能 '{skill_name}'。你是不是要找: {sug_text}（使用 id）。可用技能: {hint}"
+            return f"错误: 本地未找到技能 '{skill_name}'。你是不是要找: {sug_text}（使用 id）。"
+        if hint:
+            return f"错误: 本地未找到技能 '{skill_name}'。可用技能(使用 id): {hint}"
         return f"错误: 本地未找到技能 '{skill_name}'。"
 
 @tool

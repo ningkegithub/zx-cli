@@ -2,6 +2,7 @@ langchain
 langgraph
 langchain-openai
 requests
-beautifulsoup4prompt_toolkit
+beautifulsoup4
+prompt_toolkit
 python-pptx
 rich
