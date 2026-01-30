@@ -10,7 +10,10 @@ venv/
 # Project specific (Outputs)
 *.png
 *.pdf
+*.pptx
+~$*
 result.md
+result_*.md
 /tests/*.png
 github_docs/
 
