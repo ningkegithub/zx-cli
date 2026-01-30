@@ -16,9 +16,9 @@ def run_shell(command: str):
             # 将 'python'/'python3' 替换为当前解释器的绝对路径
             original_cmd = command
             command = f"{sys.executable} {parts[1]}"
-            print(f"🔄 [环境修复] 重定向至当前 Python: {sys.executable}")
+            # print(f"🔄 [环境修复] 重定向至当前 Python: {sys.executable}") # 暂时注释，交给 UI 层处理
 
-    print(f"\n💻 [Shell] 执行中: {command}")
+    # print(f"\n💻 [Shell] 执行中: {command}") # 移除直接打印，避免破坏 Rich Live UI
     try:
         result = subprocess.run(
             command, 
@@ -39,7 +39,7 @@ def run_shell(command: str):
 @tool
 def activate_skill(skill_name: str):
     """激活特殊技能。例如：'imagetopdf', 'web_scraper'。"""
-    print(f"\n⚡️ [工具] 激活技能: {skill_name}...")
+    # print(f"\n⚡️ [工具] 激活技能: {skill_name}...") # 移除直接打印
     
     # 搜索优先级：项目内置技能 > 用户自定义技能
     search_paths = [

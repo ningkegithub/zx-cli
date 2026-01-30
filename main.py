@@ -1,43 +1,57 @@
 #!/usr/bin/env python3
 import sys
+import os
 import re
-from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
+import json
+
+# Rich 库
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
+from rich.markdown import Markdown
+from rich.live import Live
+from rich.markup import escape
+
+# LangChain & PromptToolkit
+from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, AIMessageChunk
 from prompt_toolkit import PromptSession
 from prompt_toolkit.styles import Style
+
+# Agent Core
 from agent_core import build_graph
 
+console = Console()
+
 def main():
-    print("🤖 模块化智能体 CLI (v1.0)")
-    print("---------------------------")
-    print("提示：你可以试着说“把当前文件夹下的图片合并为 PDF”。")
-    print("输入 'exit' 或 'quit' 退出。\n")
+    console.print(Panel.fit(
+        "[bold cyan]🤖 Modular Agent CLI (v1.5)[/bold cyan]\n"
+        "[dim]Powered by LangGraph & DeepSeek/OpenAI[/dim]",
+        border_style="blue"
+    ))
+    console.print("💡 [green]提示[/green]: 试着说 [italic]‘帮我查看当前目录下的文件’[/italic]")
+    console.print("🚪 输入 [bold red]exit[/bold red] 退出。\n")
     
-    # Check API Key
-    import os
-    if not os.environ.get("OPENAI_API_KEY"):
-        print("⚠️  警告：在环境变量中未找到 OPENAI_API_KEY。")
-        print("   请运行：export OPENAI_API_KEY='sk-...' ")
+    if not os.environ.get("OPENAI_API_KEY") and not os.environ.get("LLM_API_KEY"):
+        console.print("⚠️  [bold yellow]警告[/bold yellow]: 未找到 API Key。", style="yellow")
         return
 
-    # 初始化图
-    app = build_graph()
+    try:
+        app = build_graph()
+    except Exception as e:
+        console.print(f"❌ [bold red]初始化失败:[/bold red] {e}")
+        return
     
     chat_history = []
-    active_skills = {} # 改为字典存储多技能
-
-    # 初始化交互 Session (支持历史记录、中文退格优化)
-    style = Style.from_dict({
-        'prompt': 'ansigreen bold',
-    })
+    active_skills = {}
+    style = Style.from_dict({'prompt': 'ansigreen bold'})
     session = PromptSession()
 
     while True:
         try:
+            print()
             user_input = session.prompt("用户> ", style=style)
             if user_input.lower() in ["exit", "quit"]:
                 break
-            
-            # Skip empty input
             if not user_input.strip():
                 continue
 
@@ -46,54 +60,102 @@ def main():
                 "active_skills": active_skills
             }
             
-            print("   (思考中...)")
-            # 关键：初始化已读 ID，包含历史消息，避免重复打印
-            seen_message_ids = {msg.id for msg in chat_history} 
+            # 状态变量
+            current_messages = inputs["messages"]
+            accumulated_content = ""
+            seen_message_ids = set() # 消息去重
+            
+            with Live(console=console, refresh_per_second=12, vertical_overflow="visible") as live:
+                live.update(Text("⠋ 正在思考...", style="cyan"))
+                
+                # 使用双模式：messages 用于 UI 流式，updates 用于状态同步
+                for mode, data in app.stream(inputs, stream_mode=["messages", "updates"]):
+                    
+                    # --- 1. 流式展示 Token (仅展示文本) ---
+                    if mode == "messages":
+                        chunk = data[0]
+                        if isinstance(chunk, AIMessageChunk) and chunk.content:
+                            accumulated_content += chunk.content
+                            display_content = f"**AI >** {accumulated_content}"
+                            live.update(Markdown(display_content))
 
-            for event in app.stream(inputs, stream_mode="values"):
-                # 获取当前所有消息
-                all_msgs = event["messages"]
-                # 从事件中获取更新后的技能池
-                active_skills = event.get("active_skills", active_skills)
-                
-                # 只处理还没打印过的消息
-                for msg in all_msgs:
-                    if msg.id in seen_message_ids:
-                        continue
-                    
-                    if isinstance(msg, AIMessage):
-                        # 1. 如果有工具调用，content 视为思考过程
-                        if msg.tool_calls:
-                            if msg.content:
-                                # [UI 清洗] 去除重复的思考前缀 (DeepSeek 有时会输出两次)
-                                clean_content = msg.content.strip()
-                                clean_content = re.sub(r'(🧠\s*\[思考\]\s*)+', '🧠 [思考] ', clean_content)
-                                print(f"{clean_content}")
-                            for tc in msg.tool_calls:
-                                print(f"   🤖 动作: {tc['name']}({tc['args']})")
-                        # 2. 如果没有工具调用，content 视为最终回答
-                        elif msg.content:
-                            # 过滤掉之前的用户输入对应的 AI 响应（如果是旧消息）
-                            # 实际上因为我们在 stream 内部处理，msg 只要是新的就打印
-                            print(f"Agent> {msg.content.strip()}")
-                        
-                        seen_message_ids.add(msg.id)
-                    
-                    elif isinstance(msg, ToolMessage):
-                        # 展示工具执行结果预览，增加“轮次感”
-                        res_text = msg.content.strip().replace("\n", " ")
-                        if len(res_text) > 60:
-                            res_text = res_text[:60] + "..."
-                        print(f"   ✅ [结果] {res_text}")
-                        seen_message_ids.add(msg.id)
-                
-            chat_history = event["messages"]
-            print("")
+                    # --- 2. 处理节点更新 (展示动作和结果) ---
+                    elif mode == "updates":
+                        for node_name, node_output in data.items():
+                            if not node_output: continue
+                            
+                            # 更新技能池
+                            if "active_skills" in node_output:
+                                active_skills = node_output["active_skills"]
+                            
+                            if "messages" in node_output:
+                                for msg in node_output["messages"]:
+                                    if msg.id in seen_message_ids: continue
+                                    seen_message_ids.add(msg.id)
+                                    
+                                    # 情况 A: AI 决定发起动作 (AIMessage 包含 tool_calls)
+                                    if isinstance(msg, AIMessage) and msg.tool_calls:
+                                        # 清除 Spinner 残留
+                                        live.update(Text(""))
+                                        live.refresh()
+                                        live.stop() 
+                                        
+                                        for tc in msg.tool_calls:
+                                            # 提取参数字符串
+                                            args_str = json.dumps(tc['args'], ensure_ascii=False)
+                                            # 针对 run_shell 做特殊美化
+                                            if tc['name'] == 'run_shell' and 'command' in tc['args']:
+                                                display_args = f"[bold white]$ {tc['args']['command']}[/bold white]"
+                                            else:
+                                                display_args = escape(args_str)
+
+                                            console.print(Panel(
+                                                display_args,
+                                                title=f"[bold blue]⚙️ 动作: {tc['name']}[/bold blue]",
+                                                border_style="blue",
+                                                expand=False
+                                            ))
+                                        
+                                        # 开启新一轮转圈
+                                        accumulated_content = "" 
+                                        live.start()
+                                        live.update(Text("⠋ 正在执行工具...", style="yellow"))
+                                    
+                                    # 情况 B: 工具返回结果 (ToolMessage)
+                                    elif isinstance(msg, ToolMessage):
+                                        # 清除 Spinner 残留
+                                        live.update(Text(""))
+                                        live.refresh()
+                                        live.stop()
+                                        
+                                        raw_content = msg.content.strip()
+                                        if "SYSTEM_INJECTION" in raw_content:
+                                            display_res = "[系统] 技能协议已成功加载。"
+                                        else:
+                                            safe_res = escape(raw_content)
+                                            lines = safe_res.split('\n')
+                                            display_res = "\n".join(lines[:10]) + (f"\n... (截断)" if len(lines) > 10 else "")
+                                        
+                                        console.print(Panel(
+                                            display_res or "[无返回结果]",
+                                            title=f"[bold green]✅ {msg.name or '工具'} 执行结果[/bold green]",
+                                            border_style="green",
+                                            expand=False
+                                        ))
+                                        
+                                        # 继续思考转圈
+                                        live.start()
+                                        live.update(Text("⠋ 继续思考...", style="cyan"))
+                                        live.refresh()
+                                    
+                                    current_messages.append(msg)
+
+            chat_history = current_messages
 
         except KeyboardInterrupt:
             break
         except Exception as e:
-            print(f"Error: {e}")
+            console.print(f"\n❌ [bold red]Error:[/bold red] {e}")
 
 if __name__ == "__main__":
     main()
