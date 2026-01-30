@@ -23,6 +23,9 @@ from agent_core import build_graph
 console = Console()
 
 def main():
+    # 自动创建 output 目录，保持根目录整洁
+    os.makedirs("output", exist_ok=True)
+
     console.print(Panel.fit(
         "[bold cyan]🤖 Modular Agent CLI (v1.5)[/bold cyan]\n"
         "[dim]Powered by LangGraph & DeepSeek/OpenAI[/dim]",

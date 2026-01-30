@@ -38,6 +38,7 @@ def call_model(state: AgentState):
 <core_strategies>
   <strategy>遇到复杂任务，请优先检查并激活相关技能。</strategy>
   <strategy>【强制思考】在调用工具前，必须在 content 中输出以“🧠 [思考]”开头的内心独白，解释你的判断。</strategy>
+  <strategy>【文件规范】所有生成的新文件（如文档、代码、PPT）默认必须保存到 output/ 目录下，除非用户明确指定了其他路径。</strategy>
   <strategy>【原子工具】修改文件前必须先使用 read_file。严禁在正文中虚构文件内容或执行结果。</strategy>
   <strategy>【严格分步 - 技能】激活技能 (activate_skill) 后，必须等待下一轮对话确认协议加载，严禁在同一轮次中调用该技能下的脚本或工具。</strategy>
   <strategy>【严格分步 - 读写】读取文件 (read_file) 后，必须等待内容返回，严禁在同一轮次中执行 write_file。</strategy>

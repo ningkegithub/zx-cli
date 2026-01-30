@@ -8,15 +8,11 @@ venv/
 .venv/
 
 # Project specific (Outputs)
+output/
 *.png
 *.pdf
 *.pptx
 ~$*
-result.md
-result_*.md
-summary.md
-ppt_outline.md
-get_*.py
 /tests/*.png
 github_docs/
 
