@@ -27,19 +27,25 @@ def get_spinner_text(phrase, elapsed):
 
 def render_tool_action(console, tool_name, tool_args):
     """渲染工具动作面板 (蓝色)"""
-    args_str = json.dumps(tool_args, ensure_ascii=False)
-    
-    if tool_name == 'run_shell' and 'command' in tool_args:
+    # 格式化参数
+    if not tool_args:
+        display_args = "[italic dim]无参数[/italic dim]"
+    elif tool_name == 'run_shell' and 'command' in tool_args:
         cmd_safe = escape(tool_args['command'])
         display_args = f"[bold white]$ {cmd_safe}[/bold white]"
     else:
-        display_args = escape(args_str)
+        # 转换为字符串并截断过长内容
+        args_json = json.dumps(tool_args, ensure_ascii=False, indent=2)
+        if len(args_json) > 400:
+            args_json = args_json[:400] + "\n... (内容过长已截断)"
+        display_args = escape(args_json)
 
     console.print(Panel(
         display_args,
         title=f"[bold blue]⚙️ 动作: {escape(tool_name)}[/bold blue]",
         border_style="blue",
-        expand=False
+        expand=False,
+        padding=(0, 1)
     ))
 
 def render_tool_result(console, tool_name, content):

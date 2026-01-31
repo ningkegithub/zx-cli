@@ -180,7 +180,8 @@ def main():
                                             accumulated_content = ""
                                             
                                             safe_name = escape(tc.get("name", "Unknown"))
-                                            current_phrase = f"[yellow]⚙️ 正在调用工具: {safe_name}...[/yellow]"
+                                            # 在 Spinner 中显式显示正在准备调用的工具名
+                                            current_phrase = f"[bold yellow]⚙️ 准备执行: {safe_name}...[/bold yellow]"
                                             is_thinking = True
                                             _render_live(live, accumulated_content, ui.get_spinner_text(current_phrase, elapsed))
 
@@ -197,20 +198,23 @@ def main():
                                             if msg_key in seen_message_keys: continue
                                             seen_message_keys.add(msg_key)
                                             
-                                            # 展示动作
-                                            if isinstance(msg, AIMessage) and msg.tool_calls:
-                                                if msg.content:
-                                                    accumulated_content = msg.content
-                                                _render_live(live, accumulated_content, None)
-                                                live.update(Text("")) # 清空
-                                                live.stop()
-                                                for tc in msg.tool_calls:
-                                                    ui.render_tool_action(console, tc['name'], tc['args'])
-                                                live.start()
-                                                is_thinking = True
+                                            # [优化] 跳过 AIMessage 的文本部分，防止与流式输出重复
+                                            # 但如果包含工具调用，必须在这里渲染工具卡片（因为 Stream 模式下无法获取完整参数）
+                                            if isinstance(msg, AIMessage):
+                                                if msg.tool_calls:
+                                                    live.update(Text(""))
+                                                    live.stop()
+                                                    for tc in msg.tool_calls:
+                                                        ui.render_tool_action(console, tc['name'], tc['args'])
+                                                    live.start()
+                                                    is_thinking = True # 工具执行中
+                                                
+                                                current_messages.append(msg)
+                                                continue
                                             
-                                            # 展示结果
-                                            elif isinstance(msg, ToolMessage):
+                                            # 展示结果 (ToolMessage)
+                                            # 工具结果通常不通过 stream message chunk 发送，或者是整块发送，适合在这里处理
+                                            if isinstance(msg, ToolMessage):
                                                 live.update(Text(""))
                                                 live.stop()
                                                 ui.render_tool_result(console, msg.name, msg.content)

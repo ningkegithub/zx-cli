@@ -59,12 +59,10 @@ def shutdown_llm_clients():
         _close_client(obj, "http_async_client")
 
 def _ensure_tool_call_thought_prefix(content: str) -> str:
-    """工具调用时确保有思考前缀，但不强制剥离回答内容。"""
+    """确保工具调用时有内容描述（不再强加表情前缀）。"""
     text = (content or "").strip()
-    if not text or text == "🧠" or text == "🧠 [思考]":
-        return "🧠 [思考] 我需要调用工具获取必要信息。"
-    if not text.startswith("🧠 [思考]"):
-        text = "🧠 [思考] " + text
+    if not text:
+        return "正在分析任务并调用相关工具..."
     return text
 
 def call_model(state: AgentState):
@@ -82,12 +80,12 @@ def call_model(state: AgentState):
 
 <core_strategies>
   <strategy>遇到复杂任务，请优先检查并激活相关技能。</strategy>
-  <strategy>【强制思考】在调用工具前，必须在 content 中输出以“🧠 [思考]”开头的内心独白，解释你的判断。</strategy>
-  <strategy>【技能规范】激活技能时必须使用 &lt;available_skills&gt; 中 skill 的 id 字段，名称需精准匹配。</strategy>
-  <strategy>【文件规范】所有生成的新文件（如文档、代码、PPT）默认必须保存到 output/ 目录下，除非用户明确指定了其他路径。</strategy>
-  <strategy>【原子工具】修改文件前必须先使用 read_file。严禁在正文中虚构文件内容或执行结果。</strategy>
-  <strategy>【严格分步 - 技能】激活技能 (activate_skill) 后，必须等待下一轮对话确认协议加载，严禁在同一轮次中调用该技能下的脚本或工具。</strategy>
-  <strategy>【严格分步 - 读写】读取文件 (read_file) 后，必须等待内容返回，严禁在同一轮次中执行 write_file。</strategy>
+  <strategy>在执行任何操作或回答前，请先简要说明你的分析思路。</strategy>
+  <strategy>激活技能时必须使用 &lt;available_skills&gt; 中 skill 的 id 字段，名称需精准匹配。</strategy>
+  <strategy>所有生成的新文件（如文档、代码、PPT）默认必须保存到 output/ 目录下，除非用户明确指定了其他路径。</strategy>
+  <strategy>修改文件前必须先使用 read_file。严禁在正文中虚构文件内容或执行结果。</strategy>
+  <strategy>激活技能 (activate_skill) 后，必须等待下一轮对话确认协议加载，严禁在同一轮次中调用该技能下的脚本或工具。</strategy>
+  <strategy>读取文件 (read_file) 后，必须等待内容返回，严禁在同一轮次中执行 write_file。</strategy>
 </core_strategies>
 
 {available_skills_xml}
@@ -121,13 +119,13 @@ def call_model(state: AgentState):
         if "activate_skill" in tool_names and len(tool_names) > 1:
             print("\n🛡️ [安全守卫] 检测到激活技能与其他动作并行，强制拦截后续动作。")
             response.tool_calls = [tc for tc in response.tool_calls if tc["name"] == "activate_skill"]
-            response.content = "🧠 [思考] 我需要先激活技能，待下一轮获知技能协议后再执行具体动作。"
+            response.content = "我需要先激活技能，待下一轮获知技能协议后再执行具体动作。"
 
         # 拦截 2: 读写并行
         elif "read_file" in tool_names and "write_file" in tool_names:
             print("\n🛡️ [安全守卫] 检测到并行读写，强制拦截写入操作，确保先读后写。")
             response.tool_calls = [tc for tc in response.tool_calls if tc["name"] == "read_file"]
-            response.content = "🧠 [思考] 我需要先读取文件内容，确认无误后再进行写入。"
+            response.content = "我需要先读取文件内容，确认无误后再进行写入。"
 
     return {"messages": [response]}
 

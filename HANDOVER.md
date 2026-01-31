@@ -75,9 +75,30 @@
 2.  **多模态增强**：探索如何让 Agent “看见”本地图片，并将其合理地排版进 PPT。
 3.  **自动化验收**：Codex 开始工作前，请务必运行 `./venv/bin/python3 tests/test_e2e_v2.py` 确保环境一致。
 
+## 📅 2026-01-31
+
+### 👨‍💻 交班人: Gemini (Refactoring Specialist)
+
+#### ✅ 已完成工作 (Done)
+1.  **UI 交互重构 (Stream-First Architecture)**：
+    -   **解决内容重复**：重构 `main.py` 渲染循环，确立了 "Stream 负责 AI 文本，Updates 负责工具展示" 的分权原则，彻底修复了 AI 回复被重复渲染的 Bug。
+    -   **工具展示优化**：工具调用的蓝色面板现在展示完整的参数（Args），并去除了低对比度的 `dim` 样式，确保信息清晰可见。支持长参数智能截断。
+    -   **自然流交互**：移除了 System Prompt 中所有强制性的 `🧠 [思考]` 标签要求，让 Agent 以自然语言进行分析，提升了对话的沉浸感。
+2.  **稳健性修复**：
+    -   修复 `main.py` 中 `rich.panel.Panel` 导入缺失的问题。
+    -   修复工具调用在 Stream 模式下参数不完整的问题（改为在 Updates 模式下渲染完整 Panel）。
+3.  **测试适配**：
+    -   更新 `tests/test_model_output_constraints.py` 和 `tests/test_guardrail.py`，移除对旧式表情前缀的断言，适配新的自然语言逻辑。
+4.  **遗留清理**：
+    -   移除了冗余的 `skills/deep-coder`（已通过用户目录加载）。
+
+#### 🧪 已运行测试 (Tests)
+- `./venv/bin/python3 tests/test_model_output_constraints.py` (Passed)
+- `./venv/bin/python3 tests/test_guardrail.py` (Passed)
+- 手动验证：UI 流畅度、工具调用显示、Ctrl+C 中断。
+
 #### ⚠️ 注意事项 (Notes)
-- **架构严守 (反省)**：严禁在 `agent_core/tools.py` 写入非 `@tool` 逻辑。辅助逻辑必须放 `utils.py`。
-- **Markup 陷阱**：Rich 的 Markup 标签必须严格匹配，动态字符串必须 `escape()`，否则会导致渲染器崩溃。
-- **Output 规范**：任何写操作必须默认指向 `output/` 文件夹。
+- **渲染逻辑**：现在 `main.py` 里的逻辑是：AI 的 `content` 走 `stream` 通道实时上屏；`tool_calls` 的面板展示走 `updates` 通道（在 `AIMessage` 完整生成后）。切勿在 stream 通道里打印工具面板，否则会得到空的参数。
+- **Prompt 策略**：目前的 Prompt 鼓励 Agent "在执行复杂操作前简要分析"，但不强制格式。如需 CoT，建议依赖模型自身能力或显式要求。
 
 ---
