@@ -15,7 +15,7 @@ Modular Agent CLI 是一个基于 **LangGraph** 构建的企业级智能体终�
 ### 🧠 本地知识中枢 (Project Memex)
 Agent 不再是“失忆”的工具人，它拥有了私有化、可成长的长期记忆。
 *   **私有 RAG 底座**：基于 **LanceDB** + **BGE-M3** 构建的本地向量引擎，无需联网，数据不出域。
-*   **全格式入库**：一键将 PDF、Word、Excel、PPT 存入大脑，保留文档结构与图片占位。
+*   **全格式入库与归档**：一键将 PDF、Word、Excel、PPT 存入大脑。系统采用 **Copy-on-Ingest** 机制，入库即自动归档至影子库 (`~/.agent-cli/documents`)，确保源文件删除后仍可溯源。
 *   **生产级防御**：内置 **Schema 自动迁移** 机制，当数据库结构升级时自动平衡，确保系统永不因数据冲突崩溃。
 *   **溯源机制**：每一次回答都带有精确的 `[Source: File, Loc: Slide/Page, Line: X-Y]` 引用，拒绝幻觉。
 

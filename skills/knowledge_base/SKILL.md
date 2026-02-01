@@ -26,12 +26,12 @@ description: 基于 LanceDB 的本地知识库与记忆中枢。支持 Word/PDF/
 - `collection_name`: 集合名称（默认 "documents"）。
 
 **⚠️ 推荐调用方式**:
-`python {SKILL_DIR}/scripts/ingest.py "YOUR_PATH" "collection_name"`
+`PYTHONPATH=. python {SKILL_DIR}/scripts/ingest.py "YOUR_PATH" "collection_name"`
 
 ### 2. `search_knowledge(query: str, collection_name: str = "documents", limit: int = 5)`
 在知识库中搜索相关信息。
 **⚠️ 推荐调用方式**:
-`python {SKILL_DIR}/scripts/query.py "YOUR_QUERY" "collection_name"`
+`PYTHONPATH=. python {SKILL_DIR}/scripts/query.py "YOUR_QUERY" "collection_name"`
 
 ### 3. `manage_knowledge(command: str, args: str)`
 管理知识库内容（查看清单或删除文件）。
@@ -39,8 +39,8 @@ description: 基于 LanceDB 的本地知识库与记忆中枢。支持 Word/PDF/
 - `args`: 对于 list，传集合名（可选）；对于 delete，传 "filename"（必须精确匹配）。
 
 **⚠️ 推荐调用方式**:
-- 查看清单: `python {SKILL_DIR}/scripts/manage.py list`
-- 删除文件: `python {SKILL_DIR}/scripts/manage.py delete "filename"`
+- 查看清单: `PYTHONPATH=. python {SKILL_DIR}/scripts/manage.py list`
+- 删除文件: `PYTHONPATH=. python {SKILL_DIR}/scripts/manage.py delete "filename"`
 
 ## 使用场景示例
 

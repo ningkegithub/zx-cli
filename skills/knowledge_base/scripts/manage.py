@@ -2,10 +2,11 @@ import sys
 import os
 import argparse
 
-# 添加项目根目录
+# [关键修复] 先添加路径
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(CURRENT_DIR)))
-sys.path.append(PROJECT_ROOT)
+if PROJECT_ROOT not in sys.path:
+    sys.path.append(PROJECT_ROOT)
 
 from skills.knowledge_base.scripts.db_manager import DBManager
 
@@ -27,11 +28,36 @@ def delete_knowledge(source_file, collection="documents"):
     db = DBManager.get_instance()
     # 简单的存在性检查（通过 list）
     stats = db.list_sources(collection)
+    
+    # 这里的 source_file 是归档后的绝对路径
+    # 如果用户传的是文件名（如 'report.pdf'），我们可能需要模糊匹配？
+    # 为了精确，我们要求用户传完整路径。或者 manage list 返回的就是完整路径。
+    
     if source_file not in stats:
-        return f"错误: 知识库中未找到文件 '{source_file}'。"
+        # 尝试匹配文件名
+        matches = [s for s in stats.keys() if os.path.basename(s) == source_file]
+        if len(matches) == 1:
+            source_file = matches[0] # 自动修正为完整路径
+        elif len(matches) > 1:
+            return f"错误: 找到多个匹配 '{source_file}' 的文件。请使用完整路径删除。"
+        else:
+            return f"错误: 知识库中未找到文件 '{source_file}'。"
         
     db.delete_by_source(collection, source_file)
-    return f"✅ 已成功从知识库删除: {source_file}"
+    
+    # [新增] 物理删除归档文件
+    # 如果 source_file 存在于 DOCS_ARCHIVE_PATH 中，则删除
+    # 注意 source_file 可能是绝对路径
+    if os.path.exists(source_file) and os.path.isfile(source_file):
+        try:
+            os.remove(source_file)
+            msg = f"✅ 已成功从知识库及归档目录删除: {os.path.basename(source_file)}"
+        except Exception as e:
+            msg = f"⚠️ 已从知识库删除，但物理文件删除失败: {e}"
+    else:
+        msg = f"✅ 已成功从知识库删除索引 (文件已不存在): {source_file}"
+        
+    return msg
 
 def main():
     parser = argparse.ArgumentParser(description="Knowledge Base Management Tool")

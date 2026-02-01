@@ -1,14 +1,18 @@
 import os
 import sys
 import glob
+import shutil
+import hashlib
 
-# 添加项目根目录到 path 以导入 agent_core
+# [关键修复] 先计算并添加项目根目录，再进行后续 import
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(CURRENT_DIR)))
-sys.path.append(PROJECT_ROOT)
+if PROJECT_ROOT not in sys.path:
+    sys.path.append(PROJECT_ROOT)
 
+# 现在可以安全地导入了
+from skills.knowledge_base.scripts.db_manager import DBManager, DOCS_ARCHIVE_PATH
 from agent_core.tools import read_file
-from skills.knowledge_base.scripts.db_manager import DBManager
 
 def chunk_text_by_lines(text, chunk_size=20, overlap=5):
     """
@@ -20,7 +24,6 @@ def chunk_text_by_lines(text, chunk_size=20, overlap=5):
     total_lines = len(lines)
     
     # 预扫描：建立行号到位置的映射
-    # line_location_map[line_index] = "Slide 1"
     line_location_map = {}
     current_location = "Unknown Location"
     
@@ -41,10 +44,6 @@ def chunk_text_by_lines(text, chunk_size=20, overlap=5):
         
         if not chunk_content: continue
         
-        # 获取当前 Chunk 对应的主要位置（取中间行的位置，或者起始行的位置）
-        # 取起始行的位置通常比较准，因为 Context 覆盖了后文
-        # 但如果 Chunk 跨页了怎么办？
-        # 我们可以记录 range，例如 "Slide 1 - Slide 2"
         start_loc = line_location_map.get(i, "Unknown")
         end_loc = line_location_map.get(end-1, "Unknown")
         
@@ -64,93 +63,87 @@ def chunk_text_by_lines(text, chunk_size=20, overlap=5):
         
     return chunks
 
-def ingest_file(file_path, collection_name="documents"):
-    # ... (前文读取逻辑保持不变)
-    # 既然我们要修改 chunking 逻辑，我们需要把 ingest_file 的后半部分也替换掉
-    # 为了稳妥，我将替换整个 ingest_file 函数的后半部分
-    pass
+def archive_file(file_path):
+    """将文件归档到影子目录，返回归档后的绝对路径"""
+    try:
+        with open(file_path, "rb") as f:
+            file_hash = hashlib.md5(f.read()).hexdigest()[:8]
+        
+        filename = os.path.basename(file_path)
+        new_filename = f"{file_hash}_{filename}"
+        new_path = os.path.join(DOCS_ARCHIVE_PATH, new_filename)
+        
+        if not os.path.exists(new_path):
+            shutil.copy2(file_path, new_path)
+            print(f"📦 Archived to: {new_path}")
+        else:
+            print(f"📦 Used existing archive: {new_path}")
+            
+        return new_path
+    except Exception as e:
+        print(f"⚠️ Archive failed: {e}. Using original path.")
+        return file_path
 
-
 def ingest_file(file_path, collection_name="documents"):
-    print(f"📄 Processing: {file_path}")
+    # 1. 归档 (Copy-on-Ingest)
+    target_path = archive_file(file_path)
+    print(f"📄 Processing: {target_path}")
     
-    # 1. 调用 Core Tool 读取文件 (利用其强大的解析能力)
-    # 不使用 outline_only，直接读全文 (利用新特性: end_line=-1)
-    # 注意：read_file 内部有截断保护，但我们作为内部调用，希望读全量。
-    # 我们需要绕过 read_file 的 500 行保护吗？
-    # 是的。但 read_file 的实现是 end_line=-1 时默认截断。
-    # 我们可以 loop 读取，或者修改 read_file 的逻辑。
-    # 为了简单，我们先读前 2000 行。如果文件超大，Ingest 脚本应该实现分页循环。
-    
+    # 2. 调用 Core Tool 读取文件 (使用归档后的路径)
     full_content = ""
     start_line = 1
-    page_size = 1000 # 每次读 1000 行
+    page_size = 1000 
     
     while True:
-        # 调用 tool.invoke 或者是直接导入函数调用
-        # 这里直接调用函数（因为我们在 python 脚本里）
-        # 但 read_file 是 StructuredTool，需要 .invoke 或 .func
-        # 简单起见，直接调用底层的 _read_docx 等？不，那样破坏了封装。
-        # 我们用 read_file.func
+        # 使用 read_file.func 直接调用
+        part = read_file.func(target_path, start_line=start_line, end_line=start_line + page_size)
         
-        part = read_file.func(file_path, start_line=start_line, end_line=start_line + page_size)
-        
-        # 去除 Header/Footer 噪音
-        # 这是一个 hack，但有效
         body = part
         if "--- 文件元数据 ---" in part:
-            body = part.split("--- 文件元数据 ---")[1].split("\n", 4)[-1] # 跳过头几行
+            body = part.split("--- 文件元数据 ---")[1].split("\n", 4)[-1]
         if "[SYSTEM WARNING]" in body:
             body = body.split("[SYSTEM WARNING]")[0]
             
         full_content += body
         
-        # 检查是否读完
         if "[SYSTEM WARNING]" not in part: 
             break
         start_line += page_size
-        if start_line > 10000: # 安全熔断
+        if start_line > 10000:
             print("⚠️ File too large (>10k lines), stopping.")
             break
 
-    # 2. 切片
+    # 3. 切片
     chunks = chunk_text_by_lines(full_content)
     print(f"   -> Split into {len(chunks)} chunks.")
     
     if not chunks: return
 
-    # 3. 向量化 & 存储
+    # 4. 向量化 & 存储
     db = DBManager.get_instance()
     vectors = db.embed_documents([c['text'] for c in chunks])
     
-    # 计算相对路径，方便 Agent 后续读取
-    try:
-        rel_path = os.path.relpath(file_path, PROJECT_ROOT)
-    except ValueError:
-        # 如果跨盘符（Windows）或路径异常，回退到原始路径
-        rel_path = file_path
+    # 使用归档路径作为 Source
+    final_source = target_path
 
     data = []
     for i, chunk in enumerate(chunks):
         data.append({
             "vector": vectors[i],
             "text": chunk['text'],
-            "source": rel_path, # [修改] 存储相对路径
+            "source": final_source, 
             "line_range": f"{chunk['line_start']}-{chunk['line_end']}",
             "location": chunk['location'], 
             "type": "document"
         })
-
         
-    # 4. 写入 DB
-    # 检查 Schema 兼容性
+    # 5. 写入 DB
     is_compatible = db.check_schema_compatibility(collection_name, data[0])
     
     tbl = db.get_table(collection_name)
     if tbl and is_compatible:
         tbl.add(data)
     else:
-        # 如果表不存在，或者刚才因为不兼容被删除了，这里会创建新表
         db.create_table(collection_name, data)
         
     print(f"✅ Ingested {len(data)} vectors to '{collection_name}'.")

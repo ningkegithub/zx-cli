@@ -4,7 +4,10 @@ from fastembed import TextEmbedding
 
 # 配置常量
 # [修正] 使用 .agent-cli 作为用户数据目录
-DB_PATH = os.path.expanduser("~/.agent-cli/memory/lancedb_store")
+BASE_DIR = os.path.expanduser("~/.agent-cli")
+DB_PATH = os.path.join(BASE_DIR, "memory/lancedb_store")
+DOCS_ARCHIVE_PATH = os.path.join(BASE_DIR, "documents") # 影子文档库
+
 EMBEDDING_MODEL_NAME = "BAAI/bge-small-zh-v1.5" # 优秀的中文模型，体积适中
 
 class DBManager:
@@ -12,8 +15,9 @@ class DBManager:
     
     def __init__(self):
         # 确保目录存在
-        if not os.path.exists(DB_PATH):
-            os.makedirs(DB_PATH)
+        for path in [DB_PATH, DOCS_ARCHIVE_PATH]:
+            if not os.path.exists(path):
+                os.makedirs(path, exist_ok=True)
             
         self.db = lancedb.connect(DB_PATH)
         # 初始化 Embedding 模型 (会自动下载)
