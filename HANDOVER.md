@@ -96,19 +96,30 @@
     -   **入库即归档 (Phase 1.5)**：实现 **Copy-on-Ingest** 机制。入库文件会自动加盐 Hash 并备份至 `~/.agent-cli/documents`，数据库 `source` 字段指向归档后的绝对路径，彻底解决源文件丢失导致的死链问题。
     -   **脚本自愈 (Robustness)**：优化了 `ingest.py` / `query.py` 的路径处理逻辑。脚本现在能自动识别项目根目录并加入 `sys.path`，Agent 无需再显式注入 `PYTHONPATH=.` 即可成功运行。
     -   **闭环管理**：实现了 List/Delete 功能，删除索引时会自动同步清理影子库中的物理文件。
-4.  **策略优化 (Prompt Tuning)**：
+4.  **主动记忆系统 (Active Memory - Phase 2)**：
+    -   **长期记忆**：实现了基于 `MEMORY.md` 的 Prompt 注入机制。Agent 启动即知晓用户偏好。新增 `remember` 工具用于显式写入记忆。
+    -   **情景记忆**：实现了会话自动归档 (`_archive_session`) 和自动入库 (Auto-Ingest)。每日对话日志会自动同步至 `episodic_memory` 向量集合。
+    -   **回忆能力**：将 `search_knowledge` 升级为 Native Tool (Wrapper)，并优化 System Prompt，教会 Agent 在被问及“历史”时主动检索情景记忆。
+5.  **策略优化 (Prompt Tuning)**：
     -   **反灌水策略**：System Prompt 中植入了针对长文档的“深读”指令。当 Agent 遇到重复废话时，会自动尝试向后推移读取窗口，或切换为搜索模式。
-5.  **稳健性与测试**：
-    -   新增 `tests/test_skill_knowledge_base.py`，全量覆盖了 **Ingest -> Search -> Delete -> Auto-Migration** 的全生命周期。
-    -   测试脚本现在支持动态生成 PPTX 桩数据，不依赖外部环境。
+    -   **回忆策略**：引导 Agent 区分“事实查询”（长期记忆）与“历史回溯”（情景记忆）。
+6.  **稳健性与测试**：
+    -   新增 `tests/test_io_v2_advanced.py`，验证了大纲提取、行号绝对对齐、搜索准确性。
+    -   新增 `tests/test_skill_knowledge_base.py`，验证了 RAG 的全生命周期 (Ingest->Search->Delete->Auto-Migration)。
+    -   新增 `tests/test_memory_archiving.py`，验证了会话归档与自动同步流程。
+    -   更新 `requirements.txt` 引入 `lancedb`, `fastembed`, `tantivy`。
 
 #### 🧪 已运行测试 (Tests)
-- `PYTHONPATH=. ./venv/bin/python3 -m unittest discover tests/` (All Passed)
-- 用户验收：通过 CLI 对话完成“天合光能 PPT”的入库、语义检索及 Slide 定位。
+- `PYTHONPATH=. ./venv/bin/python3 -m unittest discover tests/` (All 12 Tests Passed)
+- 手动验证：售前方案生成场景（处理 20页+ Word 和 多 Sheet Excel）。
+- 用户验收：通过 CLI 对话完成知识库的增删改查，以及“讲笑话”的情景回忆。
 
 #### ⚠️ 注意事项 (Notes)
-- **数据一致性**：归档文件采用了 `hash_filename` 格式。在执行 `delete` 时，管理脚本支持通过原始文件名进行模糊匹配。
+- **记忆路径**：
+    - 长期记忆: `~/.agent-cli/memory/MEMORY.md`
+    - 情景日志: `~/.agent-cli/memory/logs/YYYY-MM-DD/`
+    - 向量数据: `~/.agent-cli/memory/lancedb_store`
 - **首次运行**：第一次调用 `knowledge_base` 时会自动下载 BGE 模型 (~300MB)，需确保网络通畅。
-- **路径规范**：所有私有数据已正名为 `~/.agent-cli/`。
+- **未来规划**：目前的 Collection 默认为 `documents`。下一步可扩展 `episodic_memory` 集合，实现对话历史的自动沉淀（参考 OpenClaw 机制）。
 
 ---

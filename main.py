@@ -4,6 +4,7 @@ import time
 import threading
 import queue
 import signal
+import subprocess
 
 # Rich & PromptToolkit
 from rich.live import Live
@@ -60,9 +61,79 @@ def _flush_live_snapshot(live, accumulated_content: str):
     live.stop()
     console.print(Markdown(f"**AI >** {accumulated_content}"))
 
-def _graceful_exit(stop_event, worker_thread):
-    """退出前尽量停止后台线程，并忽略后续 SIGINT 以避免 shutdown 噪音。"""
+def _archive_session(chat_history):
+    """将当前会话历史归档为 Markdown 文件"""
+    if not chat_history: return
+    
+    import datetime
+    import os
+    from agent_core.utils import USER_MEMORY_DIR
+    
+    logs_dir = os.path.join(USER_MEMORY_DIR, "logs")
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    # 按日期归档
+    target_dir = os.path.join(logs_dir, today)
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir, exist_ok=True)
+        
+    # 文件名包含日期和时间，更加清晰且唯一
+    filename = f"{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_session.md"
+    file_path = os.path.join(target_dir, filename)
+    
+    content = [f"# Session Log: {datetime.datetime.now()}"]
+    for msg in chat_history:
+        if isinstance(msg, HumanMessage):
+            role = "User"
+        elif isinstance(msg, AIMessage):
+            role = "AI"
+        elif isinstance(msg, ToolMessage):
+            role = "Tool"
+        else:
+            role = "System"
+            
+        text = str(msg.content)
+        if isinstance(msg, AIMessage) and msg.tool_calls:
+            for tc in msg.tool_calls:
+                text += f"\n\n🛠️ Call: {tc['name']}({tc['args']})"
+                
+        content.append(f"\n## {role}\n{text}")
+        
     try:
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(content))
+        console.print(f"[dim]💾 会话已归档至: .../logs/{today}/{filename}[/dim]")
+        
+        # [新增] 自动入库到 episodic_memory
+        # 使用 subprocess 调用 ingest.py，确保环境隔离且路径正确
+        # 假设 ingest.py 在标准位置
+        ingest_script = os.path.join(os.getcwd(), "skills/knowledge_base/scripts/ingest.py")
+        if os.path.exists(ingest_script):
+            # 使用 sys.executable 确保使用当前的 venv python
+            # 传入 file_path 和 collection_name="episodic_memory"
+            # 无论成功与否，不应阻塞退出，所以 capture_output=True 且不 check
+            proc = subprocess.run(
+                [sys.executable, ingest_script, file_path, "episodic_memory"],
+                capture_output=True,
+                text=True
+            )
+            if proc.returncode == 0:
+                console.print(f"[dim]🧠 记忆已同步至 episodic_memory[/dim]")
+            else:
+                # 仅在 debug 模式或 verbose 模式下显示错误，避免吓到用户
+                # console.print(f"[dim]⚠️ 记忆同步跳过: {proc.stderr.strip()}[/dim]")
+                pass
+        else:
+            console.print(f"[dim]⚠️ 未找到 ingest 脚本，跳过记忆同步[/dim]")
+            
+    except Exception as e:
+        console.print(f"[red]归档失败: {e}[/red]")
+
+def _graceful_exit(stop_event, worker_thread, history=None):
+    """退出前尽量停止后台线程，并归档会话。"""
+    try:
+        if history:
+            _archive_session(history)
+            
         if stop_event and worker_thread and worker_thread.is_alive():
             stop_event.set()
             worker_thread.join(timeout=1.0)
@@ -101,7 +172,7 @@ def main():
             user_input = session.prompt("用户> ", style=style)
             if user_input.lower() in ["exit", "quit"]:
                 console.print("[dim]👋 再见！[/dim]")
-                _graceful_exit(stop_event, worker_thread)
+                _graceful_exit(stop_event, worker_thread, chat_history)
                 return
             if not user_input.strip():
                 continue
@@ -234,7 +305,7 @@ def main():
             # 二次 Ctrl+C 直接退出
             if now - last_interrupt_time < 1.5:
                 console.print("\n[bold red]👋 已退出[/bold red]")
-                _graceful_exit(stop_event, worker_thread)
+                _graceful_exit(stop_event, worker_thread, chat_history)
                 return
             last_interrupt_time = now
 
@@ -245,7 +316,7 @@ def main():
                 time.sleep(0.2)
                 continue
             console.print("\n[bold red]👋 已退出[/bold red]")
-            _graceful_exit(stop_event, worker_thread)
+            _graceful_exit(stop_event, worker_thread, chat_history)
             return
         except Exception as e:
             ui.render_error(console, e)

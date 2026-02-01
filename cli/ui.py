@@ -53,7 +53,9 @@ def render_tool_action(console, tool_name, tool_args):
 def render_tool_result(console, tool_name, content):
     """渲染工具结果面板 (绿色)"""
     raw_content = content.strip()
-    if "SYSTEM_INJECTION" in raw_content:
+    # [修复] 只有当工具是 activate_skill 且内容包含标记时，才显示加载成功
+    # 防止 read_file 读取到包含该标记的日志时误报
+    if tool_name == "activate_skill" and "SYSTEM_INJECTION" in raw_content:
         display_res = "[系统] 技能协议已成功加载。"
     else:
         safe_res = escape(raw_content)
