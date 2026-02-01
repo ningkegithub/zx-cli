@@ -6,7 +6,7 @@ from langchain_core.messages import SystemMessage, ToolMessage, AIMessage
 from langchain_openai import ChatOpenAI
 from .state import AgentState
 from .tools import available_tools, activate_skill
-from .utils import get_available_skills_list
+from .utils import get_available_skills_list, ensure_memory_exists, MEMORY_FILE
 
 # 初始化 LLM (支持通过环境变量切换模型提供商，如 DeepSeek/火山引擎)
 model_name = os.environ.get("LLM_MODEL_NAME", "gpt-4o-mini")
@@ -65,6 +65,16 @@ def _ensure_tool_call_thought_prefix(content: str) -> str:
         return "正在分析任务并调用相关工具..."
     return text
 
+def _get_memory_content():
+    """读取长期记忆文件内容"""
+    ensure_memory_exists()
+    try:
+        with open(MEMORY_FILE, "r", encoding="utf-8") as f:
+            # 限制读取长度，防止 Prompt 爆炸 (例如前 2000 字符)
+            return f.read(2000)
+    except Exception:
+        return ""
+
 def call_model(state: AgentState):
     """
     核心思考节点：构建结构化 Prompt 并调用 LLM。
@@ -72,11 +82,16 @@ def call_model(state: AgentState):
     messages = state["messages"]
     active_skills = state.get("active_skills", {})
     available_skills_xml = get_available_skills_list()
+    memory_content = _get_memory_content()
     
     # 基础 System Prompt
     system_prompt = f"""<role>
 你是一个强大的模块化 CLI 智能体。你具备执行 Shell 命令的能力，并能通过激活外部技能扩展自己的功能。
 </role>
+
+<long_term_memory>
+{memory_content}
+</long_term_memory>
 
 <core_strategies>
   <strategy>遇到复杂任务，请优先检查并激活相关技能。</strategy>

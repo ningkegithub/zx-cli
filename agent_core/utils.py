@@ -9,11 +9,33 @@ CURRENT_FILE = os.path.abspath(__file__)
 AGENT_CORE_DIR = os.path.dirname(CURRENT_FILE)
 PROJECT_ROOT = os.path.dirname(AGENT_CORE_DIR)
 INTERNAL_SKILLS_DIR = os.path.join(PROJECT_ROOT, "skills")
-USER_SKILLS_DIR = os.path.expanduser("~/.gemini/skills") # 保留用户目录作为扩展
+USER_SKILLS_DIR = os.path.expanduser("~/.agent-cli/skills") 
+USER_MEMORY_DIR = os.path.expanduser("~/.agent-cli/memory")
+MEMORY_FILE = os.path.join(USER_MEMORY_DIR, "MEMORY.md")
 
 # =====================
 # 🛠️ 系统辅助函数
 # =====================
+
+def ensure_memory_exists():
+    """确保记忆文件存在，若不存在则创建默认模板。"""
+    if not os.path.exists(USER_MEMORY_DIR):
+        os.makedirs(USER_MEMORY_DIR, exist_ok=True)
+        
+    if not os.path.exists(MEMORY_FILE):
+        default_content = """# User Profile & Long-term Memory
+- 这里存放用户的核心偏好、关键事实和长期指令。
+- Agent 在每次对话前都会读取此文件。
+- 请使用 'remember' 工具追加新的记忆。
+
+## User Preferences
+- Language: 中文优先
+- Role: 金蝶售前顾问助手
+"""
+        with open(MEMORY_FILE, "w", encoding="utf-8") as f:
+            f.write(default_content)
+    
+    return MEMORY_FILE
 
 def _extract_frontmatter_metadata(content: str):
     """解析 SKILL.md 的 YAML Frontmatter，返回 dict。"""
