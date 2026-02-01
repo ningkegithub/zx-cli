@@ -24,4 +24,4 @@ github_docs/
 .idea/
 
 # Gemini tmp
-.gemini/
+.gemini/openclaw_repo/

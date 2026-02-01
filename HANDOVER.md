@@ -90,19 +90,27 @@
         -   **大纲模式**：`read_file(outline_only=True)` 返回带行号的文档目录，实现上帝视角。
         -   **全文搜索**：新增 `search_file` 工具，支持正则，是在海量文本中定位关键指标（如 "QPS", "价格"）的终极武器。
     -   **原子编辑能力**：新增 `replace_in_file` 工具，支持基于上下文的精准字符串替换，避免全量重写。
-3.  **策略优化 (Prompt Tuning)**：
+3.  **Project Memex (本地知识中枢)**：
+    -   **架构落地**：成功构建了基于 **LanceDB** (Vector DB) + **FastEmbed** (BGE-Small-zh) 的轻量级本地 RAG 系统。
+    -   **技能封装**：创建 `skills/knowledge_base`，包含 `ingest.py` (智能切片入库)、`query.py` (混合检索) 和 `manage.py` (知识管理)。
+    -   **全格式支持**：复用 `File I/O 2.1` 能力，支持 Office全家桶及PDF的解析入库。
+    -   **闭环管理**：实现了 List/Delete 功能，Agent 可自主维护知识库内容。
+4.  **策略优化 (Prompt Tuning)**：
     -   **反灌水策略**：System Prompt 中植入了针对长文档的“深读”指令。当 Agent 遇到重复废话时，会自动尝试向后推移读取窗口，或切换为搜索模式。
-4.  **稳健性与测试**：
+5.  **稳健性与测试**：
     -   新增 `tests/test_io_v2_advanced.py`，验证了大纲提取、行号绝对对齐、搜索准确性。
-    -   更新 `requirements.txt` 引入 `python-docx`, `pypdf`, `openpyxl`。
+    -   新增 `tests/test_skill_knowledge_base.py`，验证了 RAG 的全生命周期 (Ingest->Search->Delete)。
+    -   更新 `requirements.txt` 引入 `lancedb`, `fastembed`, `tantivy`。
 
 #### 🧪 已运行测试 (Tests)
 - `PYTHONPATH=. ./venv/bin/python3 tests/test_io_v2_advanced.py` (Passed)
+- `PYTHONPATH=. ./venv/bin/python3 tests/test_skill_knowledge_base.py` (Passed)
 - 手动验证：售前方案生成场景（处理 20页+ Word 和 多 Sheet Excel）。
+- 用户验收：通过 CLI 对话完成知识库的增删改查。
 
 #### ⚠️ 注意事项 (Notes)
-- **多模态路径**：PDF 中的图片目前仅插入 `[IMAGE_PLACEHOLDER]` 标记。这为后续接入多模态视觉模型留下了上下文锚点。
-- **依赖管理**：新引入的 Office 库较大，在 CI 环境中需注意安装时间。
-- **Prompt 引导**：对于极端复杂的文档，建议在 User Prompt 中显式提醒 Agent "善用 search_file 工具"，这能显著提升成功率。
+- **RAG 路径**：数据库默认存储在 `~/.gemini/memory/lancedb_store`。
+- **首次运行**：第一次调用 `knowledge_base` 时会自动下载 BGE 模型 (~300MB)，需确保网络通畅。
+- **未来规划**：目前的 Collection 默认为 `documents`。下一步可扩展 `episodic_memory` 集合，实现对话历史的自动沉淀（参考 OpenClaw 机制）。
 
 ---
