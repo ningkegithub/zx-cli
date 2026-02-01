@@ -5,7 +5,7 @@ import csv
 import io
 import textwrap
 from langchain_core.tools import tool
-from .utils import INTERNAL_SKILLS_DIR, USER_SKILLS_DIR, get_available_skills_hint, get_skill_suggestions
+from .utils import INTERNAL_SKILLS_DIR, USER_SKILLS_DIR, get_available_skills_hint, get_skill_suggestions, MEMORY_FILE, ensure_memory_exists, PROJECT_ROOT
 
 # 尝试导入可选依赖
 try:
@@ -193,6 +193,22 @@ def replace_in_file(file_path: str, old_string: str, new_string: str):
     except Exception as e: return f"替换出错: {e}"
 
 @tool
+def remember(fact: str):
+    """
+    将关键事实或用户偏好写入长期记忆。
+    例如：'remember("用户偏好使用 Python")' 或 'remember("项目代号是 Project X")'。
+    这些信息会被持久化保存，并在未来的对话中被自动回忆起来。
+    """
+    try:
+        ensure_memory_exists()
+        import datetime
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        entry = f"\n- [{timestamp}] {fact}"
+        with open(MEMORY_FILE, "a", encoding="utf-8") as f: f.write(entry)
+        return f"已记住: {fact}"
+    except Exception as e: return f"记忆写入失败: {e}"
+
+@tool
 def search_file(file_path: str, pattern: str, case_sensitive: bool = False):
     """
     在文件中搜索指定关键词或正则模式。支持 Office/PDF/PPT 文档。
@@ -221,4 +237,31 @@ def search_file(file_path: str, pattern: str, case_sensitive: bool = False):
         return result
     except Exception as e: return f"搜索出错: {e}"
 
-available_tools = [run_shell, activate_skill, read_file, write_file, replace_in_file, search_file]
+@tool
+def search_knowledge(query: str, collection: str = "documents"):
+    """
+    核心知识检索工具。
+    功能：从本地向量库中搜索相关信息。
+    适用场景：
+    1. 查询已入库的文档（如白皮书、报价单）。 Collection: "documents"
+    2. 回忆过去的对话历史（情景记忆）。 Collection: "episodic_memory"
+    """
+    # 动态定位脚本
+    script_path = os.path.join(INTERNAL_SKILLS_DIR, "knowledge_base/scripts/query.py")
+    if not os.path.exists(script_path):
+        return "错误: 知识库技能脚本未找到。"
+        
+    cmd = [sys.executable, script_path, query, collection]
+    try:
+        # 注入 PYTHONPATH 确保脚本能找到 agent_core
+        env = os.environ.copy()
+        env["PYTHONPATH"] = PROJECT_ROOT
+        
+        res = subprocess.run(cmd, capture_output=True, text=True, env=env)
+        if res.returncode != 0:
+            return f"检索失败: {res.stderr}"
+        return res.stdout
+    except Exception as e:
+        return f"执行错误: {e}"
+
+available_tools = [run_shell, activate_skill, read_file, write_file, replace_in_file, search_file, remember, search_knowledge]
