@@ -9,8 +9,20 @@ CURRENT_FILE = os.path.abspath(__file__)
 AGENT_CORE_DIR = os.path.dirname(CURRENT_FILE)
 PROJECT_ROOT = os.path.dirname(AGENT_CORE_DIR)
 INTERNAL_SKILLS_DIR = os.path.join(PROJECT_ROOT, "skills")
-USER_SKILLS_DIR = os.path.expanduser("~/.agent-cli/skills") 
-USER_MEMORY_DIR = os.path.expanduser("~/.agent-cli/memory")
+
+# 自动迁移旧数据 (~/.agent-cli -> ~/.zx-cli)
+OLD_USER_HOME = os.path.expanduser("~/.agent-cli")
+NEW_USER_HOME = os.path.expanduser("~/.zx-cli")
+
+if os.path.exists(OLD_USER_HOME) and not os.path.exists(NEW_USER_HOME):
+    try:
+        os.rename(OLD_USER_HOME, NEW_USER_HOME)
+        print(f"🔄 [Migration] Successfully migrated user data from {OLD_USER_HOME} to {NEW_USER_HOME}")
+    except Exception as e:
+        print(f"⚠️ [Migration] Failed to rename {OLD_USER_HOME} to {NEW_USER_HOME}: {e}")
+
+USER_SKILLS_DIR = os.path.join(NEW_USER_HOME, "skills")
+USER_MEMORY_DIR = os.path.join(NEW_USER_HOME, "memory")
 MEMORY_FILE = os.path.join(USER_MEMORY_DIR, "MEMORY.md")
 
 # =====================

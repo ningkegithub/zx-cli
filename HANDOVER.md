@@ -11,12 +11,12 @@
 
 #### ✅ 已完成工作 (Done)
 1.  **记忆管理重构 (Memory Management 2.0)**：
-    -   **工具合并与增强**：废弃了功能单一的 `remember` 工具，引入全能型 `manage_memory(content, action)`。
-        -   `action='add'`: 写入前执行智能相似度检查（difflib > 0.85），防止记忆重复堆叠。
-        -   `action='delete'`: 支持物理删除（抹除）包含特定关键词的记忆行，彻底解决“追加式遗忘”无效的问题。
-    -   **策略优化**：更新 System Prompt，明确区分【长期记忆】（直接复述标签）与【情景回忆】（查向量库），并强制 Agent 在遗忘时使用删除工具。
-    -   **测试覆盖**：新增 `tests/test_memory_management.py`，覆盖了增、删、去重、异常处理全链路，确保记忆操作的原子性和安全性。
-2.  **品牌升级 (Rebranding)**：
+    -   (同前) 引入 `manage_memory` 工具，支持智能去重与物理删除。
+2.  **路径品牌化迁移 (Directory Rebranding)**：
+    -   **用户目录更名**：用户数据目录由 `~/.agent-cli` 统一更名为 `~/.zx-cli`。
+    -   **自动迁移机制**：在 `agent_core/utils.py` 中实现了启动时无感迁移逻辑。系统会自动检测旧目录并执行原地重命名，确保用户记忆、知识库和安装技能不丢失。
+    -   **硬编码清理**：同步更新了 `db_manager.py` 和所有文档中的路径引用。
+3.  **品牌升级 (Rebranding)**：
     -   项目正式更名为 **ZX CLI (ZhiXing / 知行)**，Slogan 更新为 "知行合一，极致执行"。
     -   GitHub 远程仓库已更名为 `zx-cli`。
     -   更新了 `README.md`、`GEMINI.md` 及 `cli/ui.py` 中的品牌标识。
@@ -111,7 +111,7 @@
     -   **原子编辑能力**：新增 `replace_in_file` 工具，支持基于上下文的精准字符串替换，避免全量重写。
 3.  **Project Memex (本地知识中枢)**：
     -   **架构落地**：成功构建了基于 **LanceDB** (Vector DB) + **FastEmbed** (BGE-Small-zh) 的轻量级本地 RAG 系统。
-    -   **入库即归档 (Phase 1.5)**：实现 **Copy-on-Ingest** 机制。入库文件会自动加盐 Hash 并备份至 `~/.agent-cli/documents`，数据库 `source` 字段指向归档后的绝对路径，彻底解决源文件丢失导致的死链问题。
+    -   **入库即归档 (Phase 1.5)**：实现 **Copy-on-Ingest** 机制。入库文件会自动加盐 Hash 并备份至 `~/.zx-cli/documents`，数据库 `source` 字段指向归档后的绝对路径，彻底解决源文件丢失导致的死链问题。
     -   **脚本自愈 (Robustness)**：优化了 `ingest.py` / `query.py` 的路径处理逻辑。脚本现在能自动识别项目根目录并加入 `sys.path`，Agent 无需再显式注入 `PYTHONPATH=.` 即可成功运行。
     -   **闭环管理**：实现了 List/Delete 功能，删除索引时会自动同步清理影子库中的物理文件。
 4.  **主动记忆系统 (Active Memory - Phase 2)**：
@@ -134,9 +134,9 @@
 
 #### ⚠️ 注意事项 (Notes)
 - **记忆路径**：
-    - 长期记忆: `~/.agent-cli/memory/MEMORY.md`
-    - 情景日志: `~/.agent-cli/memory/logs/YYYY-MM-DD/`
-    - 向量数据: `~/.agent-cli/memory/lancedb_store`
+    - 长期记忆: `~/.zx-cli/memory/MEMORY.md`
+    - 情景日志: `~/.zx-cli/memory/logs/YYYY-MM-DD/`
+    - 向量数据: `~/.zx-cli/memory/lancedb_store`
 - **首次运行**：第一次调用 `knowledge_base` 时会自动下载 BGE 模型 (~300MB)，需确保网络通畅。
 - **情景记忆**：已实现会话自动归档并入库到 `episodic_memory`（退出时由 `_archive_session` 调用 `skills/knowledge_base/scripts/ingest.py`）。
 

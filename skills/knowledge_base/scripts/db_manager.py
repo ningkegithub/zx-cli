@@ -3,8 +3,8 @@ import lancedb
 from fastembed import TextEmbedding
 
 # 配置常量
-# [修正] 使用 .agent-cli 作为用户数据目录
-BASE_DIR = os.path.expanduser("~/.agent-cli")
+# [修正] 使用 .zx-cli 作为用户数据目录
+BASE_DIR = os.path.expanduser("~/.zx-cli")
 DB_PATH = os.path.join(BASE_DIR, "memory/lancedb_store")
 DOCS_ARCHIVE_PATH = os.path.join(BASE_DIR, "documents") # 影子文档库
 
