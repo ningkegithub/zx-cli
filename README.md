@@ -1,12 +1,12 @@
-# 🤖 Modular Agent CLI (代号: Gemini)
+# ⚡ ZX CLI (ZhiXing / 知行)
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![LangGraph](https://img.shields.io/badge/Framework-LangGraph-purple.svg)](https://github.com/langchain-ai/langgraph)
 [![License-MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-> **"不仅仅是命令行工具，而是你的全栈数字员工。"**
+> **"知行合一，极致执行 —— 你的全栈数字员工。"**
 
-Modular Agent CLI 是一个基于 **LangGraph** 构建的企业级智能体终端。它专为 **复杂任务处理** 设计，集成了 **混合多模态架构**、**本地知识库 (RAG)** 和 **办公自动化 (Office Automation)** 能力，能够胜任数据分析师、售前顾问和全栈开发者的工作。
+**ZX CLI** (全称 **ZhiXing / 知行**) 是一个基于 **LangGraph** 构建的企业级智能体终端。它的核心理念源自“知行合一”：不仅具备强大的 **“知”**（逻辑推理、知识检索与多模态理解），更具备极致的 **“行”**（办公自动化、文件操作与复杂任务执行）。它专为 **复杂任务处理** 设计，集成了 **混合多模态架构**、**本地知识库 (RAG)** 和 **办公自动化 (Office Automation)** 能力，能够胜任数据分析师、售前顾问和全栈开发者的工作。
 
 ---
 

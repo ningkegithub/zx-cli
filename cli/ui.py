@@ -9,11 +9,12 @@ console = Console()
 
 def render_header():
     console.print(Panel.fit(
-        "[bold cyan]🤖 Modular Agent CLI (v1.7)[/bold cyan]\n"
-        "[dim]Powered by LangGraph & DeepSeek/OpenAI[/dim]",
-        border_style="blue"
+        "[bold cyan]⚡ ZX CLI (ZhiXing) v1.7[/bold cyan]\n"
+        "[italic white]“知行合一，极致执行”[/italic white]",
+        border_style="cyan",
+        subtitle="[dim]Powered by LangGraph & Hybrid Brain (DeepSeek + Vision)[/dim]"
     ))
-    console.print("💡 [green]提示[/green]: 试着说 [italic]“帮我用 PPT 总结一下这个文件”[/italic]")
+    console.print("💡 [green]特色推荐[/green]: 试着说 [italic]“读取 sales.json 生成 Excel 报表，并参考知识库写一份 PPT 汇报，把 chart.png 插进去”[/italic]")
     console.print("🚪 输入 [bold red]exit[/bold red] 退出。\n")
 
 def get_spinner_text(phrase, elapsed):

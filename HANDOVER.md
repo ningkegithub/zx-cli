@@ -7,6 +7,27 @@
 
 ## 📅 2026-02-02
 
+### 👨‍💻 交班人: Gemini (Brand Specialist)
+
+#### ✅ 已完成工作 (Done)
+1.  **品牌升级 (Rebranding)**：
+    -   项目正式更名为 **ZX CLI (ZhiXing / 知行)**，Slogan 更新为 "知行合一，极致执行"。
+    -   GitHub 远程仓库已更名为 `zx-cli`。
+    -   更新了 `README.md`、`GEMINI.md` 及 `cli/ui.py` 中的品牌标识。
+2.  **记忆清理**：
+    -   移除了关于“心学文化”的旧记忆，明确了项目的纯粹工具定位。
+3.  **UI 焕新**：
+    -   启动横幅 (Banner) 已更新为 ZX CLI 样式，并提供了体现全栈能力的示例 Query。
+
+#### 🧪 已运行测试 (Tests)
+- `git status` 确认文件变更无误。
+- `gh repo rename` 确认远程仓库已更名。
+
+#### ⚠️ 注意事项 (Notes)
+- **本地目录名**：由于 Agent 正在运行中，本地目录名暂仍为 `agent-cli`。建议下次冷启动前手动执行 `mv agent-cli zx-cli`。
+
+## 📅 2026-02-02
+
 ### 👨‍💻 交班人: Codex
 
 #### ✅ 已完成工作 (Done)
@@ -159,7 +180,7 @@
 
 #### ✅ 已完成工作 (Done)
 1.  **架构升级 (v1.7)**：
-    - 完成 `main.py` 的模块化重构，核心代码已拆分至 `cli/` 包。
+    - 完成 `main.py` 的模块化重构，核心代码已拆分至 `cli/` 模块化包。
     - 确立了“职责单一”原则：`ui.py` 负责渲染，`async_worker.py` 负责逻辑，`config.py` 负责配置。
 2.  **UI/UX 革命**：
     - 引入 `rich` 库，实现了 **Token 级流式 Markdown 渲染**。
