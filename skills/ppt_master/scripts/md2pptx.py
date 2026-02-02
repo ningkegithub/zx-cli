@@ -17,7 +17,8 @@ def parse_markdown(md_content):
             'title': "Untitled", 
             'content': [], 
             'notes': "", 
-            'visual_suggestions': [] # 新增：图示建议
+            'visual_suggestions': [],
+            'images': [] # 新增：实际图片路径
         }
         lines = raw.strip().split('\n')
         mode = 'content'
@@ -28,6 +29,11 @@ def parse_markdown(md_content):
             if line.startswith('#'):
                 slide_data['title'] = re.sub(r'^#+\s*(Slide\s*\d+[：|:|｜])?', '', line).strip()
             
+            # 捕获图片 ![alt](path)
+            elif img_match := re.search(r'!\[.*?\]\((.*?)\)', line):
+                img_path = img_match.group(1)
+                slide_data['images'].append(img_path)
+
             # 捕获图示建议
             elif "图示建议" in line or "建议画" in line:
                 suggestion = line.replace("**图示建议：**", "").replace("- ", "").strip()
@@ -36,8 +42,8 @@ def parse_markdown(md_content):
             elif "Speaker Notes" in line or "演讲备注" in line:
                 mode = 'notes'
             elif mode == 'content':
-                # 过滤掉标签行
-                if not line.startswith('**'):
+                # 过滤掉标签行和图片行
+                if not line.startswith('**') and not line.startswith('!['):
                     slide_data['content'].append(line.lstrip('- ').lstrip('* '))
             elif mode == 'notes':
                 slide_data['notes'] += line.lstrip('- ').lstrip('* ') + "\n"
@@ -90,6 +96,22 @@ def add_visual_placeholder(slide, suggestions):
         p.font.color.rgb = RGBColor(80, 80, 80)
         p.font.size = Pt(14)
 
+def add_images_to_slide(slide, image_paths):
+    """将图片插入到幻灯片右侧区域"""
+    if not image_paths: return
+    
+    # 简单的排版：如果有一张图，放在右侧；如果有两张，上下排列
+    left = Inches(5.5)
+    top = Inches(2.0)
+    width = Inches(4.0)
+    
+    for i, img_path in enumerate(image_paths[:2]): # 最多支持两张
+        if not os.path.exists(img_path):
+            print(f"⚠️ 找不到图片: {img_path}")
+            continue
+        
+        slide.shapes.add_picture(img_path, left, top + Inches(i*2.5), width=width)
+
 def fill_slide(slide, slide_data):
     # 1. 标题
     if slide.shapes.title:
@@ -108,20 +130,23 @@ def fill_slide(slide, slide_data):
         tf = target.text_frame
         tf.clear()
         
-        # 如果有图示建议，我们把正文框缩窄一点？(暂时不做，先只填文字)
+        # 如果有图片或建议，我们把正文框缩窄？
         for point in slide_data['content']:
             p = tf.add_paragraph()
             p.text = point
             p.level = 0
-            p.font.size = Pt(18) # 强制调整字号，避免太小
+            p.font.size = Pt(18) 
             p.space_after = Pt(10)
             
     # 3. 备注
     if slide_data['notes']:
         slide.notes_slide.notes_text_frame.text = slide_data['notes']
         
-    # 4. 图示占位符
-    add_visual_placeholder(slide, slide_data['visual_suggestions'])
+    # 4. 图片或图示占位符
+    if slide_data['images']:
+        add_images_to_slide(slide, slide_data['images'])
+    else:
+        add_visual_placeholder(slide, slide_data['visual_suggestions'])
 
 def create_ppt(slides, output_path, template_path):
     if not os.path.exists(template_path):

@@ -75,9 +75,48 @@
 2.  **多模态增强**：探索如何让 Agent “看见”本地图片，并将其合理地排版进 PPT。
 3.  **自动化验收**：Codex 开始工作前，请务必运行 `./venv/bin/python3 tests/test_e2e_v2.py` 确保环境一致。
 
-## 📅 2026-01-31
+## 📅 2026-02-02
 
-### 👨‍💻 交班人: Gemini (Refactoring & Feature Specialist)
+### 👨‍💻 交班人: Gemini (Full-Stack Agent Specialist)
+
+#### ✅ 已完成工作 (Done)
+1.  **依赖环境同步 (Dependencies)**：
+    -   更新了 `requirements.txt`，补齐了 `lancedb`, `fastembed`, `tantivy` 等 RAG 相关库。
+    -   新增 `pandas` 依赖，并已在 `venv` 中安装，为数据处理打下基础。
+2.  **Excel 自动化技能 (excel_master)**：
+    -   **全新技能落地**：创建了 `skills/excel_master`。
+    -   **核心功能**：支持 JSON/CSV 转样式化 Excel，具备自动列宽调整、表头着色、大标题合并等功能。
+    -   **目录规范**：在 `excel_ops.py` 中强制执行了 `output/` 目录规范。
+3.  **多模态能力增强 (Multi-modal)**：
+    -   **新增工具**：在 `agent_core/tools.py` 中添加了 `describe_image` 工具。
+    -   **视觉集成**：Agent 现在可以“看见”本地图片。工具会自动读取图片并利用 `gpt-4o-mini` (或其他视觉模型) 进行内容解析。
+4.  **PPT 自动化进化 (ppt_master v1.5)**：
+    -   **图片插入支持**：重构了 `md2pptx.py`，现在支持识别 Markdown 中的 `![alt](path)` 语法并将其真实插入到幻灯片右侧。
+    -   **智能回退**：若图片文件不存在，会自动回退到原来的“图示建议”灰色占位符模式。
+5.  **稳定性验证**：
+    -   **单元测试**：清理了废旧脚本，补充了模拟素材，实现了 `unittest` 全量 15 个用例 **0 Skipped, 0 Failed**。
+    -   **回归测试**：创建并跑通了 `tests/test_e2e_v3_full.py`，验证了 Excel 生成与 PPT 图片插入的跨技能协作。
+6.  **配置安全**：
+    -   引入 `.env` 文件管理密钥，并已加入 `.gitignore`。
+    -   更新 `README.md` 指导用户配置混合模型参数。
+
+#### 🧪 已运行测试 (Tests)
+- `python3 -m unittest discover tests` (All 15 Passed)
+- `python3 tests/test_e2e_v3_full.py` (E2E Regression Passed)
+- 手动验证：多行输入模式 (`\` 续行) 及 PPT 图片生成。
+
+#### ⚠️ 注意事项 (Notes)
+- **E2E 警告**：目前的 E2E 测试仍会提示“未遵循 output/ 规范”，这是因为测试脚本中的 Prompt 引导力度不足，实际工具（如 `excel_ops.py`）已在底层做好了强制路径纠偏。
+- **图片路径**：在 PPT 中插入图片时，建议使用相对路径或确保 Agent 能访问到的绝对路径。
+- **视觉模型配置 (New)**：
+    - `describe_image` 工具已解耦，不再依赖主模型的 `LLM_` 配置。
+    - 请在 `.env` 中设置 `VISION_LLM_API_KEY`（必填）、`VISION_LLM_BASE_URL` 和 `VISION_LLM_MODEL_NAME`。
+    - 兼容性：若未设置 `VISION_LLM_API_KEY`，系统会自动回退尝试读取 `OPENAI_API_KEY`。
+
+#### 🗺️ 下一步建议 (Next Steps)
+1.  **知识库可视化**：考虑增加一个查看已入库文档列表的 UI 或工具。
+2.  **多表联动 Excel**：增强 `excel_master`，支持从多个数据源汇总生成带 Pivot Table (透视表) 的复杂 Excel。
+3.  **视觉辅助 PPT**：利用 `describe_image` 获取图片描述后，自动为 PPT 的备注栏生成更丰富的演讲稿。
 
 #### ✅ 已完成工作 (Done)
 1.  **UI 交互重构 (Stream-First Architecture)**：

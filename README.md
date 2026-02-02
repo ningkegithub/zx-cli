@@ -4,45 +4,42 @@
 [![LangGraph](https://img.shields.io/badge/Framework-LangGraph-purple.svg)](https://github.com/langchain-ai/langgraph)
 [![License-MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-> **"不仅仅是命令行工具，而是你的私有化数字员工。"**
+> **"不仅仅是命令行工具，而是你的全栈数字员工。"**
 
-Modular Agent CLI 是一个基于 **LangGraph** 构建的企业级智能体终端。它专为 **复杂任务处理** 设计，具备 **Office文档深度解析**、**本地向量记忆 (RAG)** 和 **原子化工具链**，旨在成为售前顾问、开发者和分析师的得力助手。
+Modular Agent CLI 是一个基于 **LangGraph** 构建的企业级智能体终端。它专为 **复杂任务处理** 设计，集成了 **混合多模态架构**、**本地知识库 (RAG)** 和 **办公自动化 (Office Automation)** 能力，能够胜任数据分析师、售前顾问和全栈开发者的工作。
 
 ---
 
 ## ✨ 核心特性 (Core Features)
 
+### 🧠 混合多模态架构 (Hybrid Multi-modal)
+系统创新性地采用了 **"双脑"** 协同模式，兼顾成本与能力：
+*   **大脑 (Brain)**：由 **DeepSeek V3** (或任意高智商文本模型) 负责逻辑推理、任务拆解和代码生成。
+*   **眼睛 (Eyes)**：由 **GPT-4o-mini** (或兼容视觉模型) 负责图像理解。即使主模型不支持视觉，Agent 也能通过 `describe_image` 工具“看懂”本地图片。
+*   **配置解耦**：支持通过 `.env` 分别配置主模型和视觉模型，灵活应对不同厂商接口。
+
+### 📊 办公自动化大师 (Office Master)
+我们重新定义了 CLI 处理办公文档的能力：
+*   **Excel 自动化 (`excel_master`)**：
+    *   将 JSON/CSV 数据转换为带样式的专业 Excel 报表。
+    *   自动调整列宽、表头着色、多表单管理。
+    *   支持基础统计计算（求和、平均等）。
+*   **PPT 智能生成 (`ppt_master`)**：
+    *   基于 Markdown 剧本一键生成企业级 PPT。
+    *   **图文混排**：支持识别 Markdown 中的 `![alt](path)` 语法，将本地图片精准插入幻灯片。
+    *   **演讲备注**：自动提取 Speaker Notes，辅助演示。
+*   **全能文件 I/O**：深度解析 `.docx`, `.pdf`, `.pptx`, `.xlsx`，支持大纲导航与全文搜索。
+
 ### 🧠 本地知识中枢 (Project Memex)
-Agent 不再是“失忆”的工具人，它拥有了私有化、可成长的长期记忆。
-*   **双层记忆架构**：
-    *   **语义记忆 (Semantic)**：核心偏好与事实存储在 `MEMORY.md`，每次对话自动注入，保证 Agent 始终“认识你”。
-    *   **情景记忆 (Episodic)**：每日对话自动归档为 Markdown 日志，并由 RAG 引擎实时索引。Agent 可随时“回忆”起上周的工作细节。
-*   **私有 RAG 底座**：基于 **LanceDB** + **BGE-M3** 构建的本地向量引擎，无需联网，数据不出域。
-*   **全格式入库与归档**：一键将 PDF、Word、Excel、PPT 存入大脑。系统采用 **Copy-on-Ingest** 机制，入库即自动归档至影子库 (`~/.agent-cli/documents`)，确保源文件删除后仍可溯源。
-*   **生产级防御**：内置 **Schema 自动迁移** 机制，当数据库结构升级时自动平衡，确保系统永不因数据冲突崩溃。
-*   **溯源机制**：每一次回答都带有精确的 `[Source: File, Loc: Slide/Page, Line: X-Y]` 引用，拒绝幻觉。
-
-### 📄 企业级文件 I/O (File I/O 2.1)
-不仅仅是读写文本，我们构建了一套文件操作的“瑞士军刀”：
-*   **Office 原生支持**：直接读取 `.docx`、`.pdf`、`.xlsx`、`.pptx`。特别针对 PPT 优化，可深度提取**隐藏的演讲者备注 (Notes)**。
-*   **智能大纲导航**：对于长文档（如白皮书），Agent 会先读取大纲（TOC），再通过行号精准定位章节，拒绝 Token 浪费。
-*   **全文搜索 (Grep-like)**：内置 `search_file` 工具，毫秒级定位关键指标（如 "QPS", "报价"）。
-*   **原子编辑**：使用 `replace_in_file` 进行基于上下文的精准替换。
-
-### 🎨 3. 电影级终端交互 (Cinema UI)
-*   **流式 Markdown**：思考过程如黑客帝国般实时渲染。
-*   **动态状态反馈**：清晰的 Spinner 动画展示 "思考" 与 "行动" 状态。
-*   **结构化面板**：工具调用参数与执行结果通过彩色面板（Panel）结构化展示。
-
-### 🔌 4. 动态技能插拔
-*   Agent 采用“零预置”策略。通过 `activate_skill` 动态加载本地技能（如 `web_scraper`, `ppt_master`）。
-*   架构解耦，随时扩展新能力而不影响核心稳定性。
+*   **私有 RAG**：基于 **LanceDB** + **BGE-M3** 构建的本地向量引擎。
+*   **全生命周期管理**：支持文档入库、自动归档、版本溯源和 Schema 自愈。
+*   **情景记忆**：对话历史自动存入向量库，Agent 拥有“超长短期记忆”。
 
 ---
 
 ## 🏗️ 系统架构
 
-系统基于 LangGraph 的有向无环图 (DAG) 架构，深度集成了本地知识库与安全守卫：
+系统基于 LangGraph 的有向无环图 (DAG) 架构，深度集成了 **混合双脑模型** 与 **安全守卫**：
 
 ```mermaid
 ---
@@ -51,61 +48,64 @@ config:
     curve: linear
 ---
 graph TD;
-    __start__([🚀 开始]):::first
+    __start__([🚀 Start]):::first
     
-    subgraph Agent_Core [🤖 决策核心]
+    subgraph Brain_Core [🧠 Hybrid Brain Core]
         direction TB
-        Planning(🧠 任务规划 & 思考)
-        Guardrail{🛡️ 安全守卫<br/>Hard Guardrail}
-        Planning --> Guardrail
+        DeepSeek(DeepSeek V3<br/>Logic & Reasoning)
+        Vision(GPT-4o-mini<br/>Visual Understanding)
+        Guardrail{🛡️ Guardrail<br/>Safety Check}
+        
+        DeepSeek <--> Vision
+        DeepSeek --> Guardrail
     end
     
-    subgraph Tool_Layer [🛠️ 工具执行层]
+    subgraph Skill_Layer [🛠️ Skill Matrix]
         direction TB
-        AtomicTools(File I/O 2.1<br/>Read/Write/Search)
-        Shell(System Shell)
-        Skill_RAG(📚 Project Memex<br/>Local RAG / LanceDB)
-        Skill_Other(🧩 Other Skills<br/>PPT/Web/PDF...)
+        Office_Master(📊 Office Master<br/>Excel/PPT/Word)
+        Memex_RAG(📚 Project Memex<br/>LanceDB/Vector)
+        Atomic_IO(⚡ Atomic I/O<br/>Read/Write/Search)
+        Shell_Exec(🐚 Shell Execution)
     end
 
-    skill_state_updater(🔄 状态同步<br/>State Updater)
-    __end__([🏁 结束]):::last
+    State_Sync(🔄 State Sync<br/>Context Integration)
+    __end__([🏁 End]):::last
 
-    __start__ --> Agent_Core
+    __start__ --> DeepSeek
     
-    Guardrail -->|合规调用| AtomicTools
-    Guardrail -->|合规调用| Shell
-    Guardrail -->|激活技能| Skill_RAG
-    Guardrail -->|激活技能| Skill_Other
+    Guardrail -->|Safe Call| Office_Master
+    Guardrail -->|Safe Call| Memex_RAG
+    Guardrail -->|Safe Call| Atomic_IO
+    Guardrail -->|Safe Call| Shell_Exec
     
-    Guardrail -.->|❌ 拦截违规| Planning
-    Guardrail -->|✅ 任务完成| __end__
+    Guardrail -.->|❌ Block| DeepSeek
+    Guardrail -->|✅ Done| __end__
     
-    AtomicTools --> skill_state_updater
-    Shell --> skill_state_updater
-    Skill_RAG --> skill_state_updater
-    Skill_Other --> skill_state_updater
+    Office_Master --> State_Sync
+    Memex_RAG --> State_Sync
+    Atomic_IO --> State_Sync
+    Shell_Exec --> State_Sync
     
-    skill_state_updater --> Agent_Core
+    State_Sync --> DeepSeek
 
     classDef default fill:#f9f9f9,stroke:#333,stroke-width:1px;
     classDef first fill:#e1f5fe,stroke:#01579b,color:white;
     classDef last fill:#263238,stroke:#455a64,color:white;
 ```
 
-*   **决策核心**：负责意图识别与任务拆解。内置**安全守卫**，物理拦截高危操作。
-*   **工具执行层**：
-    *   **File I/O 2.1**：Office/PDF 解析、大纲导航、原子搜索。
-    *   **Project Memex**：基于 LanceDB 的本地知识库检索。
-*   **状态同步**：将工具执行结果（如 RAG 检索到的 Context）回传给 Agent。
+*   **混合双脑 (Hybrid Brain)**：
+    *   **DeepSeek V3**：负责逻辑主控、任务拆解与工具调度。
+    *   **GPT-4o-mini**：作为“视觉皮层”，负责解析图像并向主脑提供语义描述。
+*   **安全守卫 (Guardrail)**：物理拦截高危操作（如 rm -rf /）。
+*   **技能矩阵 (Skill Matrix)**：
+    *   **Office Master**：Excel/PPT 自动化专家。
+    *   **Project Memex**：基于 LanceDB 的长期记忆检索。
 
 ---
 
 ## 🚀 快速开始 (Quick Start)
 
 ### 1. 环境准备
-推荐使用 Python 3.10+。
-
 ```bash
 # 克隆项目
 git clone https://github.com/your-repo/agent-cli.git
@@ -115,19 +115,23 @@ cd agent-cli
 python3 -m venv venv
 source venv/bin/activate
 
-# 安装依赖 (含 RAG 和 Office 支持)
+# 安装全量依赖 (含 Pandas, RAG, Office, DotEnv)
 pip install -r requirements.txt
 ```
 
-### 2. 配置模型
-支持 **OpenAI**、**DeepSeek (火山引擎)** 等所有兼容 OpenAI 格式的 API。
-建议添加到 `~/.zshrc` 或 `~/.bashrc`：
+### 2. 配置模型 (.env)
+推荐在项目根目录创建 `.env` 文件（已自动忽略，不提交 Git）：
 
-```bash
-# 示例：使用火山引擎 (DeepSeek)
-export LLM_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
-export LLM_MODEL_NAME="ep-2025xxxx-xxxxx"  # 您的 Endpoint ID
-export LLM_API_KEY="your-api-key"
+```ini
+# --- 大脑配置 (DeepSeek V3 / Claude / GPT-4) ---
+LLM_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+LLM_MODEL_NAME=ep-2025xxxx-xxxxx
+LLM_API_KEY=your-deepseek-key
+
+# --- 眼睛配置 (Vision Model, 推荐 gpt-4o-mini) ---
+VISION_LLM_BASE_URL=https://api.openai.com/v1
+VISION_LLM_MODEL_NAME=gpt-4o-mini
+VISION_LLM_API_KEY=your-openai-key
 ```
 
 ### 3. 启动
@@ -139,14 +143,14 @@ python3 main.py
 
 ## 💡 实战场景 (Use Cases)
 
-### 场景一：售前方案生成
-> **用户**: "我是售前顾问。请阅读 `demo_materials` 里的客户需求文档和我们的产品白皮书，写一份针对性的解决方案。"
+### 场景一：全链路报表自动化
+> **用户**: "读取 `sales_data.json` 生成一份 Excel 报表，然后基于报表数据写一个 PPT 汇报，把 `chart.png` 插进去。"
 
 **Agent 动作**:
-1.  调用 `read_file` 扫描 Docx/PPT，提取客户痛点 (KPIs)。
-2.  调用 `search_file` 在白皮书中检索对应的技术指标（如 "TPS", "延迟"）。
-3.  调用 `read_file` 读取 Excel 报价单。
-4.  调用 `write_file` 生成结构化的 `solution.md`。
+1.  **数据处理**：激活 `excel_master`，清洗 JSON 数据，生成带样式的 `report.xlsx`。
+2.  **视觉分析**：调用 `describe_image` 查看 `chart.png`，理解图表含义。
+3.  **PPT 制作**：激活 `ppt_master`，撰写包含图表分析的 Markdown 剧本，并引用 `chart.png`。
+4.  **最终产出**：生成图文并茂的 `presentation.pptx`。
 
 ### 场景二：企业知识库问答
 > **用户**: "把 `2025_Q1_报价单.xlsx` 存入知识库。然后告诉我 Nebula 引擎多少钱？"
@@ -159,33 +163,33 @@ python3 main.py
 
 ---
 
-## 📂 目录结构
-
-```
-agent-cli/
-├── agent_core/          # [核心] LangGraph 智能体逻辑
-│   ├── tools.py         # 核心工具 (Read/Write/Search/Run)
-│   └── ...
-├── cli/                 # [交互] UI 渲染与异步线程
-├── skills/              # [扩展] 技能插件包
-│   ├── knowledge_base/  # Project Memex (RAG)
-│   ├── ppt_master/      # PPT 生成
-│   └── ...
-├── tests/               # [测试] 自动化测试套件
-└── main.py              # 启动入口
-```
-
 ## 🛠️ 开发者指南
 
-本项目遵循 [PEP 8](https://www.python.org/dev/peps/pep-0008/) 代码风格规范。
-贡献代码前，请运行测试：
+### 测试金字塔
+本项目拥有完备的自动化测试体系：
 
 ```bash
-# 运行 RAG 集成测试
-python3 tests/test_skill_knowledge_base.py
+# 1. 单元与功能测试 (Unit Tests)
+# 覆盖工具链、RAG 生命周期、文件 IO、Excel 生成等
+python3 -m unittest discover tests -p "test_*.py"
 
-# 运行文件 IO 测试
-python3 tests/test_io_v2_advanced.py
+# 2. 全量回归测试 (E2E Regression)
+# 模拟真实业务流：Excel -> PPT (含图片) -> 结果验证
+python3 tests/test_e2e_v3_full.py
+```
+
+### 目录结构
+```
+agent-cli/
+├── agent_core/          # [核心] LangGraph 逻辑 & State
+├── cli/                 # [交互] Rich UI & Async Worker
+├── skills/              # [插件]
+│   ├── excel_master/    # [New] Excel 自动化
+│   ├── ppt_master/      # [Upgraded] PPT 生成 (含图片支持)
+│   ├── knowledge_base/  # RAG 引擎
+│   └── ...
+├── tests/               # [保障] 全链路测试脚本
+└── .env                 # [配置] 模型密钥 (用户自建)
 ```
 
 ## 📄 开源协议

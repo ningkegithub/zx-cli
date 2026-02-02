@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 import sys
+import os
+import asyncio
+from dotenv import load_dotenv
+
+# 加载环境变量 (必须在导入其他模块前执行)
+load_dotenv()
+
 import time
 import threading
 import queue

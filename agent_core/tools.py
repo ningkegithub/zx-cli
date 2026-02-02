@@ -4,6 +4,7 @@ import sys
 import csv
 import io
 import textwrap
+import base64
 from langchain_core.tools import tool
 from .utils import INTERNAL_SKILLS_DIR, USER_SKILLS_DIR, get_available_skills_hint, get_skill_suggestions, MEMORY_FILE, ensure_memory_exists, PROJECT_ROOT
 
@@ -264,4 +265,58 @@ def search_knowledge(query: str, collection: str = "documents"):
     except Exception as e:
         return f"执行错误: {e}"
 
-available_tools = [run_shell, activate_skill, read_file, write_file, replace_in_file, search_file, remember, search_knowledge]
+@tool
+def describe_image(image_path: str, prompt: str = "请详细描述这张图片的内容。"):
+    """
+    查看并分析本地图像文件（支持 PNG, JPG, WEBP）。
+    注意：此工具会独立调用视觉模型 (gpt-4o-mini) 进行分析，不占用主模型的上下文。
+    """
+    if not os.path.exists(image_path):
+        return f"错误: 未找到图片文件 '{image_path}'."
+    
+    try:
+        # 获取图片后缀
+        ext = os.path.splitext(image_path)[1].lower().strip('.')
+        if ext == 'jpg': ext = 'jpeg'
+        if ext not in ['png', 'jpeg', 'webp']:
+            return f"错误: 不支持的图片格式 '{ext}'。请使用 png, jpg 或 webp。"
+
+        with open(image_path, "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+        
+        # --- 视觉模型独立通道 ---
+        # 支持任意兼容 OpenAI 接口的多模态模型 (如 Claude, Gemini, Qwen-VL 等)
+        # 优先读取 VISION_LLM_X 系列变量
+        from langchain_openai import ChatOpenAI
+        from langchain_core.messages import HumanMessage
+        
+        vision_api_key = os.environ.get("VISION_LLM_API_KEY") or os.environ.get("OPENAI_API_KEY")
+        vision_base_url = os.environ.get("VISION_LLM_BASE_URL")
+        vision_model = os.environ.get("VISION_LLM_MODEL_NAME") or "gpt-4o-mini"
+        
+        if not vision_api_key:
+            return "错误: 视觉能力未配置。请设置 VISION_LLM_API_KEY 环境变量 (支持 gpt-4o, claude-3-5, qwen-vl 等兼容 OpenAI 接口的模型)。"
+            
+        vision_llm = ChatOpenAI(
+            model=vision_model,
+            api_key=vision_api_key,
+            temperature=0,
+            base_url=vision_base_url # 如果为 None，ChatOpenAI 会默认使用官方地址
+        )
+        
+        message = HumanMessage(
+            content=[
+                {"type": "text", "text": prompt},
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/{ext};base64,{encoded_string}"},
+                },
+            ]
+        )
+        
+        response = vision_llm.invoke([message])
+        return f"--- 图像分析结果 ({image_path}) ---\n[Vision Model: {vision_model}]\n{response.content}"
+    except Exception as e:
+        return f"图像处理出错: {e}"
+
+available_tools = [run_shell, activate_skill, read_file, write_file, replace_in_file, search_file, remember, search_knowledge, describe_image]
