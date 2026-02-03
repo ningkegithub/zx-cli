@@ -5,7 +5,7 @@ import re
 from langchain_core.messages import SystemMessage, ToolMessage, AIMessage
 from langchain_openai import ChatOpenAI
 from .state import AgentState
-from .tools import available_tools, manage_skill, save_memory, forget_memory
+from .tools import available_tools, manage_skill, save_memory, forget_memory, retrieve_knowledge
 from .utils import get_available_skills_list, ensure_memory_exists, MEMORY_FILE
 
 # 初始化 LLM (支持通过环境变量切换模型提供商，如 DeepSeek/火山引擎)
@@ -102,19 +102,30 @@ def call_model(state: AgentState):
 </long_term_memory>
 
 <core_strategies>
-  <strategy>遇到复杂任务，请优先检查并激活相关技能。</strategy>
-  <strategy>在执行任何操作或回答前，请先简要说明你的分析思路。</strategy>
-  <strategy>【自我认知】当用户询问“你了解我吗”、“你知道我是谁吗”、“查看长期记忆”等涉及用户画像的问题时，请直接复述 &lt;long_term_memory&gt; 标签中的内容。严禁调用 search_knowledge 去翻阅历史对话，除非用户明确要求回忆具体的往事。</strategy>
-  <strategy>【记忆管理】当用户明确要求“记住”某事时，调用 save_memory(content)。当用户要求“忘记”某事时，调用 forget_memory(content) 物理抹除过时信息。严禁仅通过追加新信息来覆盖旧记忆。</strategy>
-  <strategy>【技能管理】激活技能使用 manage_skill(name, action='activate')。当特定领域的任务完成后，必须主动调用 manage_skill(name, action='deactivate') 卸载技能，以释放上下文。</strategy>
-  <strategy>【情景回忆】仅当用户询问“刚才说了什么”、“之前聊了什么”等历史对话细节时，才调用 search_knowledge(query, collection_name="episodic_memory") 进行检索。</strategy>
-  <strategy>【精准定位】通过 search_knowledge 找到文件后，如果返回片段不完整，请直接对该文件使用 search_file 工具定位关键词，严禁盲目翻页读取。</strategy>
-  <strategy>【反灌水策略】如果在文档中读到了重复的模板文本，说明关键信息被埋藏在后文。请务必保持在当前章节，将 start_line 向后推移 200-300 行继续读取（例如读完 1000-1100 后，立即读取 1101-1400），直到找到具体数据。绝不要因为读到废话就跳过该章节！</strategy>
-  <strategy>激活技能时必须使用 &lt;available_skills&gt; 中 skill 的 id 字段，名称需精准匹配。</strategy>
-  <strategy>所有生成的新文件（如文档、代码、PPT）默认必须保存到 output/ 目录下，除非用户明确指定了其他路径。</strategy>
-  <strategy>修改文件前必须先使用 read_file。严禁在正文中虚构文件内容或执行结果。</strategy>
-  <strategy>激活技能 (manage_skill) 后，必须等待下一轮对话确认协议加载，严禁在同一轮次中调用该技能下的脚本或工具。</strategy>
-  <strategy>读取文件 (read_file) 后，必须等待内容返回，严禁在同一轮次中执行 write_file。</strategy>
+  <group name="🧠 大脑皮层 (形态切换)">
+    <strategy>遇到复杂任务（Excel/PPT/RAG/爬虫），必须优先激活对应技能：manage_skill(name, action='activate')。</strategy>
+    <strategy>任务完成后，必须主动调用 manage_skill(name, action='deactivate') 释放上下文，保持思维敏捷。</strategy>
+  </group>
+
+  <group name="🧠 海马体 (记忆与检索)">
+    <strategy>【用户画像】涉及用户偏好或已存事实，直接复述 &lt;long_term_memory&gt; 内容。存入调用 save_memory，抹除调用 forget_memory。</strategy>
+    <strategy>【档案检索】查询已入库文档或回忆历史对话背景，调用 retrieve_knowledge。严禁使用它搜索当前工作目录的文件。</strategy>
+  </group>
+
+  <group name="👀 感官系统 (环境感知)">
+    <strategy>【文件感知】阅读文件内容必用 read_file；定位关键词必用 search_file。严禁使用 run_shell('cat/grep') 查看文件。</strategy>
+    <strategy>【视觉感知】分析本地图片（PNG/JPG/WEBP）调用 describe_image。即便主模型不支持视觉，也可通过此工具“看见”图像。</strategy>
+  </group>
+
+  <group name="🖐️ 肢体动作 (环境执行)">
+    <strategy>【精准编辑】修改文件首选 replace_in_file 进行原子替换，避免虚构内容。仅在创建新文件时使用 write_file。</strategy>
+    <strategy>【系统执行】run_shell 仅用于编译、Git、安装依赖等系统级命令。严禁将其作为读写文件的快捷方式。</strategy>
+    <strategy>【输出规范】所有生成的新文件默认存放在 output/ 目录下，严禁污染项目根目录。</strategy>
+  </group>
+
+  <group name="🛡️ 安全与时序">
+    <strategy>修改文件前必须先 read_file。激活技能后必须等待下一轮对话确认协议加载，严禁在同一轮并行执行后续动作。</strategy>
+  </group>
 </core_strategies>
 
 {available_skills_xml}

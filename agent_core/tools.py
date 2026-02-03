@@ -294,13 +294,12 @@ def search_file(file_path: str, pattern: str, case_sensitive: bool = False):
     except Exception as e: return f"搜索出错: {e}"
 
 @tool
-def search_knowledge(query: str, collection: str = "documents"):
+def retrieve_knowledge(query: str, collection: str = "documents"):
     """
-    核心知识检索工具。
-    功能：从本地向量库中搜索相关信息。
+    语义检索工具。从本地知识库或对话历史中检索相关信息。
     适用场景：
-    1. 查询已入库的文档（如白皮书、报价单）。 Collection: "documents"
-    2. 回忆过去的对话历史（情景记忆）。 Collection: "episodic_memory"
+    1. 查阅已入库的文档（如白皮书、技术方案）。 Collection: "documents"
+    2. 回忆过去的对话背景（情景记忆）。 Collection: "episodic_memory"
     """
     # 动态定位脚本
     script_path = os.path.join(INTERNAL_SKILLS_DIR, "knowledge_base/scripts/query.py")
@@ -374,4 +373,4 @@ def describe_image(image_path: str, prompt: str = "请详细描述这张图片�
     except Exception as e:
         return f"图像处理出错: {e}"
 
-available_tools = [run_shell, manage_skill, read_file, write_file, replace_in_file, search_file, save_memory, forget_memory, search_knowledge, describe_image]
+available_tools = [run_shell, manage_skill, read_file, write_file, replace_in_file, search_file, save_memory, forget_memory, retrieve_knowledge, describe_image]
