@@ -9,6 +9,16 @@
 
 ### 👨‍💻 交班人: Gemini (Senior Architect)
 
+#### 🗺️ 下一步建议 (Next Steps: Skill Matrix 2.0)
+1.  **Web Scraper 重铸 (Priority: High)**：
+    -   **现状**：当前 `web_scraper` 仅为简陋的图片下载器，无法提取文本信息。
+    -   **目标**：升级为通用的“网页阅读器”。
+    -   **方案**：集成 `jina.ai/reader` 或类似服务，实现 `URL -> Clean Markdown` 的转换，赋予 Agent 读取技术文档、新闻和财报的能力。
+2.  **Excel Master 2.1**：
+    -   **增强**：支持多 Sheet 写入（针对复杂数据结构）；尝试引入 `openpyxl` 或 `xlsxwriter` 的图表插入功能，实现“数据+可视化”的完整报表。
+3.  **PPT Master 2.0**：
+    -   **联动**：实现与 `excel_master` 的联动，将生成的 Excel 图表自动插入到 PPT 幻灯片中，打通“数据->报表->汇报”的全链路。
+
 #### ✅ 已完成工作 (Done)
 1.  **沙箱隔离与角色对齐 (Sandboxing)**：
     -   **准则确立**：在 `GEMINI.md` 中新增“角色边界”章节，明确区分开发者权限与应用权限。
