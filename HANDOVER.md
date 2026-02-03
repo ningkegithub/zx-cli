@@ -5,6 +5,21 @@
 
 ---
 
+## 📅 2026-02-03 14:30
+
+### 👨‍💻 交班人: Gemini (Memory Architect)
+
+#### ✅ 已完成工作 (Done)
+1.  **记忆管理重构 (manage_memory)**：
+    -   **工具拆分**：将臃肿的 `manage_memory` 拆分为两个语义清晰的原子工具：`save_memory(content)` 和 `forget_memory(content)`。
+    -   **逻辑解耦**：消除了 `action='add/delete'` 参数多态带来的混淆风险，让模型指令更明确。
+    -   **System Prompt 更新**：同步更新了 `agent_core/nodes.py` 中的 `<core_strategies>`，指导 Agent 使用新工具。
+2.  **测试适配**：
+    -   **重构测试**：更新 `tests/test_memory_management.py`，全面覆盖了新工具的保存、去重、删除和未找到等场景。
+
+#### 🧪 已运行测试 (Tests)
+- `./venv/bin/python3 tests/test_memory_management.py` (Pass)
+
 ## 📅 2026-02-03 14:10
 
 ### 👨‍💻 交班人: Gemini (Skill Lifecycle Specialist)

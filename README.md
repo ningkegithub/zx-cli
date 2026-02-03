@@ -31,9 +31,9 @@
 *   **全能文件 I/O**：深度解析 `.docx`, `.pdf`, `.pptx`, `.xlsx`，支持大纲导航与全文搜索。
 
 ### 🧠 记忆与知识中枢 (Memory & Knowledge)
-*   **智能记忆 (`manage_memory`)**：
-    *   **增量记忆 (Add)**：自动去重，避免信息冗余。
-    *   **物理遗忘 (Delete)**：支持精确删除过时的偏好或事实，解决传统 Agent "只能追加、无法抹除" 的痛点。
+*   **智能记忆 (Memory System)**：
+    *   **保存记忆 (`save_memory`)**：自动去重，持久化存储用户偏好与关键事实。
+    *   **遗忘记忆 (`forget_memory`)**：精准删除过时信息，解决传统 Agent "只能追加、无法抹除" 的痛点。
 *   **技能生命周期 (`manage_skill`)**：
     *   **动态激活 (Activate)**：按需加载专业领域的 System Prompt，让 Agent 变身领域专家。
     *   **上下文卸载 (Deactivate)**：任务完成后自动卸载技能，释放上下文空间，保持轻量高效。
@@ -152,8 +152,8 @@ VISION_LLM_API_KEY=your-openai-key
 > **用户**: "我不喝咖啡了，以后给我推荐茶。顺便把之前关于咖啡的记忆忘掉。"
 
 **Agent 动作**:
-1.  调用 `manage_memory("喜欢喝咖啡", action="delete")`：物理删除旧记忆。
-2.  调用 `manage_memory("偏好：喜欢喝茶", action="add")`：追加新偏好。
+1.  调用 `forget_memory("喜欢喝咖啡")`：物理删除旧记忆。
+2.  调用 `save_memory("偏好：喜欢喝茶")`：追加新偏好。
 3.  回复: "已为您更新偏好：删除咖啡，添加茶。"
 
 ---

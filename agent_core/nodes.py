@@ -5,7 +5,7 @@ import re
 from langchain_core.messages import SystemMessage, ToolMessage, AIMessage
 from langchain_openai import ChatOpenAI
 from .state import AgentState
-from .tools import available_tools, manage_skill
+from .tools import available_tools, manage_skill, save_memory, forget_memory
 from .utils import get_available_skills_list, ensure_memory_exists, MEMORY_FILE
 
 # 初始化 LLM (支持通过环境变量切换模型提供商，如 DeepSeek/火山引擎)
@@ -105,7 +105,7 @@ def call_model(state: AgentState):
   <strategy>遇到复杂任务，请优先检查并激活相关技能。</strategy>
   <strategy>在执行任何操作或回答前，请先简要说明你的分析思路。</strategy>
   <strategy>【自我认知】当用户询问“你了解我吗”、“你知道我是谁吗”、“查看长期记忆”等涉及用户画像的问题时，请直接复述 &lt;long_term_memory&gt; 标签中的内容。严禁调用 search_knowledge 去翻阅历史对话，除非用户明确要求回忆具体的往事。</strategy>
-  <strategy>【记忆管理】当用户明确要求记住或忘记某事时，请务必调用 manage_memory 工具。使用 action='delete' 来物理抹除过时信息，严禁仅通过追加新信息来覆盖旧记忆。</strategy>
+  <strategy>【记忆管理】当用户明确要求“记住”某事时，调用 save_memory(content)。当用户要求“忘记”某事时，调用 forget_memory(content) 物理抹除过时信息。严禁仅通过追加新信息来覆盖旧记忆。</strategy>
   <strategy>【技能管理】激活技能使用 manage_skill(name, action='activate')。当特定领域的任务完成后，必须主动调用 manage_skill(name, action='deactivate') 卸载技能，以释放上下文。</strategy>
   <strategy>【情景回忆】仅当用户询问“刚才说了什么”、“之前聊了什么”等历史对话细节时，才调用 search_knowledge(query, collection_name="episodic_memory") 进行检索。</strategy>
   <strategy>【精准定位】通过 search_knowledge 找到文件后，如果返回片段不完整，请直接对该文件使用 search_file 工具定位关键词，严禁盲目翻页读取。</strategy>

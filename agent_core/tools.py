@@ -215,11 +215,10 @@ def replace_in_file(file_path: str, old_string: str, new_string: str):
     except Exception as e: return f"替换出错: {e}"
 
 @tool
-def manage_memory(content: str, action: str = "add"):
+def save_memory(content: str):
     """
-    管理长期记忆 (MEMORY.md)。支持增加事实(add)或物理删除事实(delete)。
-    - add: 记录新事实。会自动检查相似度，防止重复。
-    - delete: 抹除记忆。通过关键词匹配并物理删除相关记录。
+    保存长期记忆。用于记录用户偏好、重要事实或长期任务状态。
+    会自动进行相似度检查，避免重复记录。
     """
     try:
         ensure_memory_exists()
@@ -229,31 +228,41 @@ def manage_memory(content: str, action: str = "add"):
         with open(MEMORY_FILE, "r", encoding="utf-8") as f:
             lines = f.readlines()
             
-        if action == "add":
-            # 智能去重检查
-            for line in lines:
-                content_part = line[20:].strip() if len(line) > 20 else line.strip()
-                if difflib.SequenceMatcher(None, content_part, content.strip()).ratio() > 0.85:
-                    return f"记忆已存在 (相似度高)，跳过写入: {content}"
+        # 智能去重检查
+        for line in lines:
+            content_part = line[20:].strip() if len(line) > 20 else line.strip()
+            if difflib.SequenceMatcher(None, content_part, content.strip()).ratio() > 0.85:
+                return f"记忆已存在 (相似度高)，跳过写入: {content}"
+        
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        entry = f"\n- [{timestamp}] {content}"
+        with open(MEMORY_FILE, "a", encoding="utf-8") as f:
+            f.write(entry)
+        return f"成功保存记忆: {content}"
+    except Exception as e: return f"保存记忆失败: {e}"
+
+@tool
+def forget_memory(content: str):
+    """
+    遗忘长期记忆。物理删除 MEMORY.md 中包含指定关键词的内容。
+    用于修正错误或删除过时的用户偏好。
+    """
+    try:
+        ensure_memory_exists()
+        
+        with open(MEMORY_FILE, "r", encoding="utf-8") as f:
+            lines = f.readlines()
             
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-            entry = f"\n- [{timestamp}] {content}"
-            with open(MEMORY_FILE, "a", encoding="utf-8") as f:
-                f.write(entry)
-            return f"成功增加记忆: {content}"
+        new_lines = [l for l in lines if content not in l or l.startswith('#') or l.startswith('##')]
+        deleted_count = len(lines) - len(new_lines)
+        
+        if deleted_count == 0:
+            return f"未找到包含 '{content}' 的相关记忆。"
             
-        elif action == "delete":
-            new_lines = [l for l in lines if content not in l or l.startswith('#') or l.startswith('##')]
-            deleted_count = len(lines) - len(new_lines)
-            if deleted_count == 0:
-                return f"未找到包含 '{content}' 的相关记忆。"
-            with open(MEMORY_FILE, "w", encoding="utf-8") as f:
-                f.writelines(new_lines)
-            return f"成功抹除 {deleted_count} 条相关记忆。"
-            
-        else:
-            return f"错误: 不支持的操作类型 '{action}'."
-    except Exception as e: return f"记忆管理失败: {e}"
+        with open(MEMORY_FILE, "w", encoding="utf-8") as f:
+            f.writelines(new_lines)
+        return f"成功遗忘 {deleted_count} 条相关记忆。"
+    except Exception as e: return f"遗忘记忆失败: {e}"
 
 @tool
 def search_file(file_path: str, pattern: str, case_sensitive: bool = False):
@@ -365,4 +374,4 @@ def describe_image(image_path: str, prompt: str = "请详细描述这张图片�
     except Exception as e:
         return f"图像处理出错: {e}"
 
-available_tools = [run_shell, manage_skill, read_file, write_file, replace_in_file, search_file, manage_memory, search_knowledge, describe_image]
+available_tools = [run_shell, manage_skill, read_file, write_file, replace_in_file, search_file, save_memory, forget_memory, search_knowledge, describe_image]
