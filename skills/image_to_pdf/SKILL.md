@@ -25,5 +25,5 @@ description: 将指定目录下的多张图像合并为一个 PDF。
 1. **命令执行**：
    直接运行技能目录下的脚本。如果用户指定了文件夹（如 `images/`），请添加 `--dir` 参数：
    ```bash
-   python3 {SKILL_DIR}/scripts/merge.py output.pdf --dir images/ --sort name
+   ./venv/bin/python3 {SKILL_DIR}/scripts/merge.py output.pdf --dir images/ --sort name
    ```

@@ -17,6 +17,6 @@ description: 从指定 URL 抓取内容，支持提取图片并下载到本地�
 1. **执行抓取**：
    直接运行技能目录下的脚本：
    ```bash
-   python3 {SKILL_DIR}/scripts/scrape.py [URL] [OUTPUT_DIR]
+   ./venv/bin/python3 {SKILL_DIR}/scripts/scrape.py [URL] [OUTPUT_DIR]
    ```
-   *示例*: `python3 {SKILL_DIR}/scripts/scrape.py https://example.com my_images`
+   *示例*: `./venv/bin/python3 {SKILL_DIR}/scripts/scrape.py https://example.com my_images`

@@ -30,7 +30,7 @@ description: 将 Markdown 格式的大纲转换为 PowerPoint (.pptx) 演示文�
 
 ### 基础转换（使用默认空白模板）
 ```bash
-python3 {SKILL_DIR}/scripts/md2pptx.py input.md output.pptx
+./venv/bin/python3 {SKILL_DIR}/scripts/md2pptx.py input.md output.pptx
 ```
 
 ### 专业转换（使用企业模板 - 推荐 🌟）
@@ -38,7 +38,7 @@ python3 {SKILL_DIR}/scripts/md2pptx.py input.md output.pptx
 *金蝶模板默认路径*: `skills/ppt_master/templates/2024金蝶集团PPT模板.pptx`
 
 ```bash
-python3 {SKILL_DIR}/scripts/md2pptx.py result.md my_ppt.pptx --template skills/ppt_master/templates/2024金蝶集团PPT模板.pptx
+./venv/bin/python3 {SKILL_DIR}/scripts/md2pptx.py result.md my_ppt.pptx --template skills/ppt_master/templates/2024金蝶集团PPT模板.pptx
 ```
 
 
